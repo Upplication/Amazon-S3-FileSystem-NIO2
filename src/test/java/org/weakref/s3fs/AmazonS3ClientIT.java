@@ -1,6 +1,9 @@
 package org.weakref.s3fs;
 
+import static java.util.UUID.randomUUID;
 import static org.junit.Assert.assertNotNull;
+import static org.weakref.s3fs.util.EnvironmentBuilder.getEndpoint;
+import static org.weakref.s3fs.util.EnvironmentBuilder.getRealEnv;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -9,16 +12,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
-import static java.util.UUID.*;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.weakref.s3fs.util.EnvironmentBuilder;
 
-import static org.weakref.s3fs.util.EnvironmentBuilder.*;
-
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
@@ -33,8 +33,7 @@ public class AmazonS3ClientIT {
 		final Map<String, Object> credentials = getRealEnv();
 		BasicAWSCredentials credentialsS3 = new BasicAWSCredentials(credentials.get(S3FileSystemProvider.ACCESS_KEY).toString(), 
 				credentials.get(S3FileSystemProvider.SECRET_KEY).toString());
-		AmazonS3 s3 = new com.amazonaws.services.s3.AmazonS3Client(credentialsS3);
-		client = new AmazonS3Client(s3);
+		AmazonS3 client = new com.amazonaws.services.s3.AmazonS3Client(credentialsS3);
 		client.setEndpoint(getEndpoint());
 	}
 	

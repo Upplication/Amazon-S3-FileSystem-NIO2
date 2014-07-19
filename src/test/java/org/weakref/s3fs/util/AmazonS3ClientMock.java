@@ -19,8 +19,6 @@ package org.weakref.s3fs.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
@@ -34,10 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.weakref.s3fs.AmazonS3Client;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.CopyObjectResult;
@@ -69,11 +66,11 @@ public class AmazonS3ClientMock extends AmazonS3Client {
 	};
 
 	public AmazonS3ClientMock() {
-		super(null);
+		super();
 	}
 
 	public AmazonS3ClientMock(Path base) throws IOException {
-		super(null);
+		super();
 		// construimos el bucket
 		// 1º level: buckets
 		try (DirectoryStream<Path> dir = Files.newDirectoryStream(base)) {
