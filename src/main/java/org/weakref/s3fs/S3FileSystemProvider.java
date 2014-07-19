@@ -28,7 +28,6 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
@@ -45,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Grant;
@@ -643,10 +642,10 @@ public class S3FileSystemProvider extends FileSystemProvider {
 		AmazonS3Client client;
 
 		if (accessKey == null && secretKey == null) {
-			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client());
+			client = new AmazonS3Client();
 		} else {
-			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client(new BasicAWSCredentials(
-					accessKey.toString(), secretKey.toString())));
+			client = new AmazonS3Client(new BasicAWSCredentials(
+					accessKey.toString(), secretKey.toString()));
 		}
 
 		if (uri.getHost() != null) {

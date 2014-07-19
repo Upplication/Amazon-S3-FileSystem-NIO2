@@ -10,6 +10,7 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.Bucket;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
