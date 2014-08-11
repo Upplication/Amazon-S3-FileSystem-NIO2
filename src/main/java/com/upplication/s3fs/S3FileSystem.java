@@ -3,11 +3,13 @@ package com.upplication.s3fs;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.ArrayList;
 import java.util.Set;
 
 import com.amazonaws.services.s3.model.Bucket;
@@ -75,11 +77,25 @@ public class S3FileSystem extends FileSystem {
 
 	@Override
 	public Path getPath(String first, String... more) {
-		if (more.length == 0) {
+	    ArrayList<String> parts = new ArrayList<String>();
+	    String[] firstParts = first.split(S3Path.PATH_SEPARATOR);
+	    for (int i=0; i < firstParts.length ; i++) {
+	        String part = firstParts[i];
+	        if (part != null && ! part.isEmpty()) parts.add(part);
+	        else if ( i != 0 ) throw new InvalidPathException(part, "Null or empty 'first' path element", i);
+	    }
+	    for (int i=0; i < more.length ; i++) {
+	        String part = more[i];
+	        if (part != null && ! part.isEmpty()) parts.add(part);
+	        else throw new InvalidPathException(part, "Null or empty 'more' path element", i);
+	    }
+	    first = parts.remove(0);
+
+		if (parts.size() == 0) {
 			return new S3Path(this, first);
 		}
 
-		return new S3Path(this, first, more);
+		return new S3Path(this, first, parts.toArray(new String[0]));
 	}
 
 	@Override
