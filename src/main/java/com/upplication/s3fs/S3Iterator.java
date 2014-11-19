@@ -1,14 +1,15 @@
 package com.upplication.s3fs;
 
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.base.Preconditions;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.common.base.Preconditions;
+import com.upplication.s3fs.util.S3KeyHelper;
 
 /**
  * S3 iterator over folders at first level.
@@ -92,7 +93,7 @@ public class S3Iterator implements Iterator<Path> {
             // we only want the first level
             String key = getInmediateDescendent(this.key, objectSummaryKey);
             if (key != null){
-                S3Path descendentPart = new S3Path(s3FileSystem, "/" + objectSummary.getBucketName(), key.split("/"));
+            	S3Path descendentPart = new S3Path(s3FileSystem, "/" + objectSummary.getBucketName(), S3KeyHelper.getParts(key));
 
                 if (!listPath.contains(descendentPart)){
                     listPath.add(descendentPart);

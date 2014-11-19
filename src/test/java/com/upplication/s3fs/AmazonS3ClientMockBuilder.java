@@ -1,17 +1,18 @@
 package com.upplication.s3fs;
 
-import com.upplication.s3fs.util.AmazonS3ClientMock;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import com.upplication.s3fs.util.AmazonS3ClientMock;
 
 
 public class AmazonS3ClientMockBuilder {
@@ -96,7 +97,7 @@ public class AmazonS3ClientMockBuilder {
         try {
             AmazonS3ClientMock clientMock = spy(new AmazonS3ClientMock(fs.getPath("/")));
             S3FileSystem s3ileS3FileSystem = new S3FileSystem(provider, clientMock, "endpoint");
-            doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), anyObject(), anyObject());
+            doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), (Properties) anyObject());
             return clientMock;
         } catch (IOException e) {
             throw new IllegalStateException(e);

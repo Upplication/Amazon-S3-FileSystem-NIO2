@@ -1,20 +1,32 @@
 package com.upplication.s3fs;
 
-import com.google.common.base.*;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
+import static java.lang.String.format;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.*;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.google.common.collect.Iterables.*;
-import static java.lang.String.format;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.upplication.s3fs.util.S3KeyHelper;
 
 public class S3Path implements Path {
 	
@@ -44,7 +56,6 @@ public class S3Path implements Path {
 	 *
 	 */
 	public S3Path(S3FileSystem fileSystem, String path) {
-	
 		this(fileSystem, path, "");
 	}
 
@@ -53,9 +64,7 @@ public class S3Path implements Path {
      * @param first should be star with a '/' and the first element is the bucket
      * @param more directories and files
      */
-	public S3Path(S3FileSystem fileSystem, String first,
-                   String ... more) {
-
+	public S3Path(S3FileSystem fileSystem, String first, String ... more) {
         String bucket = null;
         List<String> parts = Lists.newArrayList(Splitter.on(PATH_SEPARATOR).split(first));
 
@@ -64,10 +73,8 @@ public class S3Path implements Path {
         }
 
         if (first.startsWith(PATH_SEPARATOR)) { // absolute path
-            Preconditions.checkArgument(parts.size() >= 1,
-                    "path must start with bucket name");
-            Preconditions.checkArgument(!parts.get(1).isEmpty(),
-                    "bucket name must be not empty");
+            Preconditions.checkArgument(parts.size() >= 1, "path must start with bucket name");
+            Preconditions.checkArgument(!parts.get(1).isEmpty(), "bucket name must be not empty");
 
             bucket = parts.get(1);
 
@@ -113,11 +120,7 @@ public class S3Path implements Path {
 		if (parts.isEmpty()) {
 			return "";
 		}
-
-		ImmutableList.Builder<String> builder = ImmutableList
-				.<String> builder().addAll(parts);
-
-		return Joiner.on(PATH_SEPARATOR).join(builder.build());
+		return S3KeyHelper.getKey(parts);
 	}
 
 	@Override

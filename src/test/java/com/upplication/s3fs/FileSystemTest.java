@@ -1,24 +1,32 @@
 package com.upplication.s3fs;
 
-import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
-import com.google.common.collect.ImmutableMap;
-import com.upplication.s3fs.util.AmazonS3ClientMock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.*;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
+import com.google.common.collect.ImmutableMap;
+import com.upplication.s3fs.util.AmazonS3ClientMock;
 
 public class FileSystemTest {
 	
@@ -57,7 +65,7 @@ public class FileSystemTest {
 		try {
 			AmazonS3ClientMock clientMock = new AmazonS3ClientMock(memoryBucket);
 			S3FileSystem s3ileS3FileSystem = new S3FileSystem(provider, clientMock, "endpoint");
-			doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), anyObject(), anyObject());
+			doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), (Properties) anyObject());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

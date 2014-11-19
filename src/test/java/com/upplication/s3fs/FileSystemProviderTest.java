@@ -1,29 +1,55 @@
 package com.upplication.s3fs;
 
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
-import com.google.common.collect.ImmutableMap;
-import com.upplication.s3fs.util.AmazonS3ClientMock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.AccessMode;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributes;
-import java.util.*;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
+import com.google.common.collect.ImmutableMap;
+import com.upplication.s3fs.util.AmazonS3ClientMock;
 
 public class FileSystemProviderTest {
 
@@ -59,7 +85,7 @@ public class FileSystemProviderTest {
 		try {
 			AmazonS3ClientMock clientMock = spy(new AmazonS3ClientMock(memoryBucket));
 			S3FileSystem s3ileS3FileSystem = new S3FileSystem(provider, clientMock, "endpoint");
-			doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), anyObject(), anyObject());
+			doReturn(s3ileS3FileSystem).when(provider).createFileSystem(any(URI.class), (Properties) anyObject());
 		    return clientMock;
         } catch (IOException e) {
 			throw new RuntimeException(e);
@@ -74,7 +100,7 @@ public class FileSystemProviderTest {
 		FileSystem fileSystem = provider.newFileSystem(S3_GLOBAL_URI, env);
 
 		assertNotNull(fileSystem);
-		verify(provider).createFileSystem(eq(S3_GLOBAL_URI), eq(env.get(S3FileSystemProvider.ACCESS_KEY)), eq(env.get(S3FileSystemProvider.SECRET_KEY)));
+		verify(provider).createFileSystem(eq(S3_GLOBAL_URI), eq(buildFakeProps((String)env.get(S3FileSystemProvider.ACCESS_KEY), (String)env.get(S3FileSystemProvider.SECRET_KEY))));
 	}
 	
 	@Test
@@ -88,7 +114,7 @@ public class FileSystemProviderTest {
 		FileSystem fileSystem = provider.newFileSystem(uri, ImmutableMap.<String, Object> of());
 		assertNotNull(fileSystem);
 		
-		verify(provider).createFileSystem(eq(uri), eq("access key"), eq("secret key"));
+		verify(provider).createFileSystem(eq(uri), eq(buildFakeProps("access key", "secret key")));
 	}
 
 	@Test
@@ -97,7 +123,7 @@ public class FileSystemProviderTest {
 		FileSystem fileSystem = provider.newFileSystem(uri, ImmutableMap.<String, Object> of());
 
 		assertNotNull(fileSystem);
-		verify(provider).createFileSystem(eq(uri), eq(null), eq(null));
+		verify(provider).createFileSystem(eq(uri), eq(buildFakeProps(null, null)));
 	}
 
 	@Test(expected = FileSystemAlreadyExistsException.class)
@@ -1247,6 +1273,15 @@ public class FileSystemProviderTest {
 		return ImmutableMap.<String, Object> builder()
 				.put(S3FileSystemProvider.ACCESS_KEY, "access key")
 				.put(S3FileSystemProvider.SECRET_KEY, "secret key").build();
+	}
+
+	private Properties buildFakeProps(String access_key, String secret_key) {
+		Properties props = new Properties();
+		if(access_key != null)
+			props.setProperty(S3FileSystemProvider.ACCESS_KEY, access_key);
+		if(secret_key != null)
+			props.setProperty(S3FileSystemProvider.SECRET_KEY, secret_key);
+		return props;
 	}
 	
 	private void assertNewDirectoryStream(Path base, final String ... files) throws IOException {

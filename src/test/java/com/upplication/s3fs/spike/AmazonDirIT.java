@@ -6,7 +6,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.upplication.s3fs.S3FileSystemProvider;
 import com.upplication.s3fs.S3Path;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,14 +16,25 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
 import java.util.UUID;
 
+import org.junit.Ignore;
+
 import static com.upplication.s3fs.util.EnvironmentBuilder.*;
 import static org.junit.Assert.*;
 
+@Ignore
 public class AmazonDirIT {
+	public static void main(String[] args) throws Exception {
+		AmazonDirIT it = new AmazonDirIT();
+		it.runTests();
+	}
+	
+    private void runTests() throws Exception {
+    	createDirWithoutEndSlash();
+    	testCreatedFromAmazonWebConsoleNotExistKeyForFolder();
+	}
+    
+	private static final URI uri = URI.create("s3:///");
 
-    private static final URI uri = URI.create("s3:///");
-
-	@Test
 	public void createDirWithoutEndSlash() throws IOException{
 		
 		S3FileSystemProvider provider = new S3FileSystemProvider(){
@@ -70,7 +80,6 @@ public class AmazonDirIT {
 		fileSystem.close();
 	}
 	
-	@Test
 	public void testCreatedFromAmazonWebConsoleNotExistKeyForFolder() throws IOException{
 		S3FileSystemProvider provider = new S3FileSystemProvider();
 		

@@ -1,11 +1,10 @@
 package com.upplication.s3fs;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
-import com.upplication.s3fs.util.CopyDirVisitor;
-import com.upplication.s3fs.util.EnvironmentBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,22 +12,71 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import org.junit.Ignore;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
+import com.upplication.s3fs.util.CopyDirVisitor;
+import com.upplication.s3fs.util.EnvironmentBuilder;
+
+@Ignore
 public class FilesOperationsIT {
 	
+	public static void main(String[] args) throws Exception {
+		FilesOperationsIT it = new FilesOperationsIT();
+		it.runTests();
+	}
+	
+	private void runTests() throws Exception {
+		setup();
+		buildEnv();
+		buildEnvAnotherURIReturnSame();
+		buildEnvWithoutEndPointReturnSame();
+		notExistsDir();
+		notExistsFile();
+		existsFile();
+		createEmptyDirTest();
+		createEmptyFileTest();
+		createTempFile();
+		createTempDir();
+		deleteFile();
+		deleteDir();
+		copyDir();
+		directoryStreamBaseBucketFindDirectoryTest();
+		directoryStreamBaseBucketFindFileTest();
+		directoryStreamFirstDirTest();
+		virtualDirectoryStreamTest();
+		virtualDirectoryStreamWithVirtualSubFolderTest();
+		deleteFullDirTest();
+		copyUploadTest();
+		copyDownloadTest();
+		createFileWithFolderAndNotExistsFolders();
+		amazonCopyDetectContentType();
+		amazonCopyNotDetectContentTypeSetDefault();
+		amazonOutpuStreamDetectContentType();
+		readAttributesDirectory();
+		seekableCloseTwice();
+	}
+
 	private static final URI uri = URI.create("s3:///");
 	private static final URI uriEurope = URI.create("s3://s3-eu-west-1.amazonaws.com/");
 	private static final String bucket = EnvironmentBuilder.getBucket();
 	
 	private FileSystem fileSystemAmazon;
 	
-	@Before
 	public void setup() throws IOException{
 		fileSystemAmazon = build();
 	}
@@ -46,38 +94,33 @@ public class FilesOperationsIT {
 		return FileSystems.newFileSystem(uri, EnvironmentBuilder.getRealEnv());
 	}
 	
-	@Test
 	public void buildEnv() throws IOException{
 		FileSystem fileSystem = FileSystems.getFileSystem(uri);
 		assertSame(fileSystemAmazon, fileSystem);
 	}
 	
-	@Test
 	public void buildEnvAnotherURIReturnSame() throws IOException{
 		FileSystem fileSystem = FileSystems.getFileSystem(uriEurope);
 		assertSame(fileSystemAmazon, fileSystem);
 	}
 	
-	@Test
 	public void buildEnvWithoutEndPointReturnSame() throws IOException{
 		FileSystem fileSystem = FileSystems.getFileSystem(uriEurope);
 		FileSystem fileSystem2 = FileSystems.getFileSystem(uri);
 		assertSame(fileSystem2, fileSystem);
 	}
-	@Test
+	
 	public void notExistsDir() throws IOException{
 		Path dir = fileSystemAmazon.getPath(bucket, UUID.randomUUID().toString() + "/");
 		assertTrue(!Files.exists(dir));
 	}
 	
-	@Test
 	public void notExistsFile() throws IOException{
 
 		Path file = fileSystemAmazon.getPath(bucket, UUID.randomUUID().toString());
 		assertTrue(!Files.exists(file));
 	}
 	
-	@Test
 	public void existsFile() throws IOException{
 
 		Path file = fileSystemAmazon.getPath(bucket, UUID.randomUUID().toString());
@@ -90,7 +133,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.exists(file));
 	}
 	
-	@Test
 	public void createEmptyDirTest() throws IOException{
 		
 		Path dir = createEmptyDir();
@@ -99,7 +141,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.isDirectory(dir));
 	}
 	
-	@Test
 	public void createEmptyFileTest() throws IOException{
 		
 		Path file = createEmptyFile();
@@ -108,7 +149,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.isRegularFile(file));
 	}
 
-	@Test
 	public void createTempFile() throws IOException{
 		
 		Path dir = createEmptyDir();
@@ -118,7 +158,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.exists(file));
 	}
 	
-	@Test
 	public void createTempDir() throws IOException{
 
 		Path dir = createEmptyDir();
@@ -128,7 +167,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.exists(dir2));
 	}
 	
-	@Test
 	public void deleteFile() throws IOException{
 		Path file = createEmptyFile();
 		Files.delete(file);
@@ -136,7 +174,6 @@ public class FilesOperationsIT {
 		Files.notExists(file);
 	}
 	
-	@Test
 	public void deleteDir() throws IOException{
 		Path dir = createEmptyDir();
 		Files.delete(dir);
@@ -144,7 +181,6 @@ public class FilesOperationsIT {
 		Files.notExists(dir);
 	}
 	
-	@Test
 	public void copyDir() throws IOException, URISyntaxException {
 
 		Path dir = uploadDir();
@@ -155,7 +191,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.exists(dir.resolve("assets1/").resolve("js").resolve("main.js")));
 	}
 	
-	@Test
 	public void directoryStreamBaseBucketFindDirectoryTest() throws IOException, URISyntaxException{
 		Path bucketPath = fileSystemAmazon.getPath(bucket);
 		String name = "01"+UUID.randomUUID().toString();
@@ -175,7 +210,6 @@ public class FilesOperationsIT {
 		}
 	}
 	
-	@Test
 	public void directoryStreamBaseBucketFindFileTest() throws IOException, URISyntaxException{
 		Path bucketPath = fileSystemAmazon.getPath(bucket);
 		String name = "00"+UUID.randomUUID().toString();
@@ -195,7 +229,6 @@ public class FilesOperationsIT {
 		}
 	}
 	
-	@Test
 	public void directoryStreamFirstDirTest() throws IOException, URISyntaxException{
 		Path dir = uploadDir();
 		
@@ -212,7 +245,6 @@ public class FilesOperationsIT {
 		}
 	}
 
-	@Test
 	public void virtualDirectoryStreamTest() throws IOException, URISyntaxException{
 		
 		String folder = UUID.randomUUID().toString();
@@ -261,7 +293,6 @@ public class FilesOperationsIT {
 		}
 	}
 	
-	@Test
 	public void virtualDirectoryStreamWithVirtualSubFolderTest() throws IOException, URISyntaxException{
 		
 		String folder = UUID.randomUUID().toString();
@@ -310,7 +341,6 @@ public class FilesOperationsIT {
 		}
 	}
 	
-	@Test
 	public void deleteFullDirTest() throws IOException, URISyntaxException {
 
 		Path dir = uploadDir();
@@ -337,7 +367,6 @@ public class FilesOperationsIT {
 		
 	}
 	
-	@Test
 	public void copyUploadTest() throws URISyntaxException, IOException {
         final String content = "sample content";
 		Path result = uploadSingleFile(content);
@@ -346,7 +375,6 @@ public class FilesOperationsIT {
 		assertArrayEquals(content.getBytes(), Files.readAllBytes(result));
 	}
 	
-	@Test
 	public void copyDownloadTest() throws IOException, URISyntaxException{
 		Path result = uploadSingleFile(null);
 		
@@ -360,7 +388,6 @@ public class FilesOperationsIT {
 		assertArrayEquals(Files.readAllBytes(result), Files.readAllBytes(notExistLocalResult));
 	}
 	
-	@Test
 	public void createFileWithFolderAndNotExistsFolders(){
 		
 		String fileWithFolders = UUID.randomUUID().toString()+"/folder2/file.html";
@@ -379,7 +406,6 @@ public class FilesOperationsIT {
 		assertTrue(Files.exists(path.getParent()));
 	}
 
-    @Test
     public void amazonCopyDetectContentType() throws IOException {
         try (FileSystem linux = MemoryFileSystemBuilder.newLinux().build("linux")){
             Path htmlFile = Files.write(linux.getPath("/index.html"),"<html><body>html file</body></html>".getBytes());
@@ -393,7 +419,6 @@ public class FilesOperationsIT {
         }
     }
 
-    @Test
     public void amazonCopyNotDetectContentTypeSetDefault() throws IOException {
         final byte[] data = new byte[] { (byte)0xe0, 0x4f, (byte)0xd0,
                 0x20, (byte)0xea, 0x3a, 0x69, 0x10, (byte)0xa2, (byte)0xd8, 0x08, 0x00, 0x2b,
@@ -410,7 +435,6 @@ public class FilesOperationsIT {
         }
     }
 
-    @Test
     public void amazonOutpuStreamDetectContentType() throws IOException {
         try (FileSystem linux = MemoryFileSystemBuilder.newLinux().build("linux")){
             Path htmlFile = Files.write(linux.getPath("/index.html"),"<html><body>html file</body></html>".getBytes());
@@ -435,7 +459,6 @@ public class FilesOperationsIT {
         }
     }
 
-    @Test
     public void readAttributesDirectory() throws IOException {
         Path dir;
 
@@ -461,7 +484,6 @@ public class FilesOperationsIT {
         assertEquals(startPath + "lib/angular/", fileAttributes.fileKey());
     }
 
-    @Test
     public void seekableCloseTwice() throws IOException{
         Path file = createEmptyFile();
 

@@ -1,31 +1,48 @@
 package com.upplication.s3fs.util;
 
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
+
+import org.junit.Ignore;
+
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
 import com.upplication.s3fs.S3FileSystem;
 import com.upplication.s3fs.S3Path;
-import org.junit.Before;
-import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.*;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-
+@Ignore
 public class S3ObjectSummaryLookupIT {
-
-    private static final URI uri = URI.create("s3:///");
+	public static void main(String[] args) throws Exception {
+		S3ObjectSummaryLookupIT it = new S3ObjectSummaryLookupIT();
+		it.runTests();
+	}
+	
+    private void runTests() throws Exception {
+    	setup();
+    	lookup_S3Object_when_S3Path_is_file();
+    	lookup_S3Object_when_S3Path_is_file_and_exists_other_starts_with_same_name();
+    	lookup_S3Object_when_S3Path_is_a_directory();
+    	lookup_S3Object_when_S3Path_is_a_directory_and_exists_other_directory_starts_same_name();
+    	lookup_S3Object_when_S3Path_is_a_directory_and_is_virtual();
+	}
+    
+	private static final URI uri = URI.create("s3:///");
     private static final String bucket = EnvironmentBuilder.getBucket();
 
     private FileSystem fileSystemAmazon;
     private S3ObjectSummaryLookup s3ObjectSummaryLookup;
 
-    @Before
     public void setup() throws IOException{
         fileSystemAmazon = build();
         s3ObjectSummaryLookup = new S3ObjectSummaryLookup();
@@ -44,7 +61,6 @@ public class S3ObjectSummaryLookupIT {
         return FileSystems.newFileSystem(uri, EnvironmentBuilder.getRealEnv());
     }
 
-    @Test
     public void lookup_S3Object_when_S3Path_is_file() throws IOException {
 
         Path path;
@@ -63,7 +79,6 @@ public class S3ObjectSummaryLookupIT {
         assertEquals(s3Path.getKey(), result.getKey());
     }
 
-    @Test
     public void lookup_S3Object_when_S3Path_is_file_and_exists_other_starts_with_same_name() throws IOException {
         Path path;
         final String startPath = "0000example" + UUID.randomUUID().toString() + "/";
@@ -82,7 +97,6 @@ public class S3ObjectSummaryLookupIT {
         assertEquals(s3Path.getKey(), result.getKey());
     }
 
-    @Test
     public void lookup_S3Object_when_S3Path_is_a_directory() throws IOException {
         Path path;
         final String startPath = "0000example" + UUID.randomUUID().toString() + "/";
@@ -100,7 +114,6 @@ public class S3ObjectSummaryLookupIT {
         assertEquals(s3Path.getKey() + "/", result.getKey());
     }
 
-    @Test
     public void lookup_S3Object_when_S3Path_is_a_directory_and_exists_other_directory_starts_same_name() throws IOException {
 
         final String startPath = "0000example" + UUID.randomUUID().toString() + "/";
@@ -117,7 +130,6 @@ public class S3ObjectSummaryLookupIT {
         assertEquals(startPath + "lib/angular/", result.getKey());
     }
 
-    @Test
     public void lookup_S3Object_when_S3Path_is_a_directory_and_is_virtual() throws IOException {
 
         String folder = "angular" + UUID.randomUUID().toString();
