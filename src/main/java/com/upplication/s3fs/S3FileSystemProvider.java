@@ -482,8 +482,11 @@ public class S3FileSystemProvider extends FileSystemProvider {
 			S3ObjectSummary objectSummary = s3ObjectSummaryLookup.lookup(s3Path);
 
 			// parse the data to BasicFileAttributes.
-			FileTime lastModifiedTime = FileTime.from(objectSummary.getLastModified().getTime(),
-					TimeUnit.MILLISECONDS);
+			FileTime lastModifiedTime = null;
+			if( objectSummary.getLastModified() != null ) {
+				lastModifiedTime = FileTime.from(objectSummary.getLastModified().getTime(), TimeUnit.MILLISECONDS);
+			}
+
 			long size =  objectSummary.getSize();
 			boolean directory = false;
 			boolean regularFile = false;
@@ -493,7 +496,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
 				directory = true;
 			}
 			// is a directory but not exists at amazon s3
-			else if (!objectSummary.getKey().equals(s3Path.getKey()) && objectSummary.getKey().startsWith(s3Path.getKey())){
+			else if ((!objectSummary.getKey().equals(s3Path.getKey()) || "".equals(s3Path.getKey())) && objectSummary.getKey().startsWith(s3Path.getKey())){
 				directory = true;
 				// no metadata, we fake one
 				size = 0;
