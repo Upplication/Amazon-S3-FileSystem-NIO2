@@ -13,9 +13,19 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -317,21 +327,21 @@ public class FilesOperationsIT {
 		
 		Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
 
-    	    @Override
-    	    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-    	        Files.delete(file);
-    	        return FileVisitResult.CONTINUE;
-    	    }
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.delete(file);
+				return FileVisitResult.CONTINUE;
+			}
 
-    	    @Override
-    	    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-    	        if(exc == null){
-    	            Files.delete(dir);
-    	            return FileVisitResult.CONTINUE;
-    	        }
-    	        throw exc;
-    	    }
-    	});
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+				if (exc == null) {
+					Files.delete(dir);
+					return FileVisitResult.CONTINUE;
+				}
+				throw exc;
+			}
+		});
 		
 		assertTrue(!Files.exists(dir));
 		
@@ -522,4 +532,51 @@ public class FilesOperationsIT {
             return dir;
         }
 	}
+
+	@Test
+	public void testBucketIsDirectory() throws IOException {
+
+		Path path = fileSystemAmazon.getPath(bucket, "/");
+		BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
+		assertEquals(0, attrs.size());
+		assertEquals(null, attrs.creationTime());
+		assertEquals(null, attrs.lastAccessTime());
+		assertEquals(null, attrs.lastModifiedTime());
+		assertTrue(attrs.isDirectory());
+
+	}
+
+	@Test
+	public void testListBucketContent() throws IOException {
+
+		Path root = fileSystemAmazon.getPath(bucket);
+		Path dir1 = root.resolve( "dir_" + UUID.randomUUID().toString() );
+		Files.createDirectory(dir1);
+
+		Path file1 = root.resolve("file_" + UUID.randomUUID().toString());
+		Path file2 = root.resolve("file_" + UUID.randomUUID().toString());
+		Path file3 = root.resolve("file_" + UUID.randomUUID().toString());
+		Files.createFile(file1);
+		Files.createFile(file2);
+
+		List<Path> list = fileList(root);
+		assertTrue(list.contains(dir1));
+		assertTrue(list.contains(file1));
+		assertTrue(list.contains(file2));
+		assertFalse(list.contains(file3));
+	}
+
+
+	private static List<Path> fileList(Path dir) throws IOException {
+		List<Path> fileNames = new ArrayList<>();
+		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(dir)) {
+			for (Path path : directoryStream) {
+				fileNames.add(path);
+			}
+		} catch (IOException ex) {
+			throw ex;
+		}
+		return fileNames;
+	}
+
 }
