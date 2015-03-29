@@ -1,7 +1,15 @@
 package com.upplication.s3fs;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.Grant;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Owner;
+import com.amazonaws.services.s3.model.Permission;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -9,6 +17,8 @@ import com.google.common.collect.Sets;
 import com.upplication.s3fs.util.FileTypeDetector;
 import com.upplication.s3fs.util.IOUtils;
 import com.upplication.s3fs.util.S3ObjectSummaryLookup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,13 +27,32 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.AccessMode;
+import java.nio.file.CopyOption;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.*;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -57,7 +86,9 @@ import static java.lang.String.format;
  * 
  */
 public class S3FileSystemProvider extends FileSystemProvider {
-	
+
+	private static Logger log = LoggerFactory.getLogger(S3FileSystemProvider.class);
+
 	public static final String
             ACCESS_KEY = "access_key";
 	public static final String SECRET_KEY = "secret_key";
@@ -66,6 +97,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     private final FileTypeDetector fileTypeDetector = new com.upplication.s3fs.util.FileTypeDetector();
     private final S3ObjectSummaryLookup s3ObjectSummaryLookup = new S3ObjectSummaryLookup();
+
+	private Properties props;
 
 	@Override
 	public String getScheme() {
@@ -79,7 +112,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
 		Preconditions.checkArgument(uri.getScheme().equals("s3"),
 				"uri scheme must be 's3': '%s'", uri);
 		// first try to load amazon props
-		Properties props = loadAmazonProperties();
+		props = loadAmazonProperties();
 		Object accessKey = props.getProperty(ACCESS_KEY);
 		Object secretKey = props.getProperty(SECRET_KEY);
 		// but can overload by envs vars
@@ -89,7 +122,10 @@ public class S3FileSystemProvider extends FileSystemProvider {
 		if (env.get(SECRET_KEY) != null){
 			secretKey = env.get(SECRET_KEY);
 		}
-		
+
+		// allows the env variables to override the ones in the property file
+		props.putAll(env);
+
 		Preconditions.checkArgument((accessKey == null && secretKey == null)
 				|| (accessKey != null && secretKey != null),
 				"%s and %s should both be provided or should both be omitted",
@@ -507,9 +543,9 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
 			return type.cast(new S3FileAttributes(key, lastModifiedTime, size, directory, regularFile));
 		}
-        else {
-            throw new UnsupportedOperationException(format("only %s supported", BasicFileAttributes.class));
-        }
+
+		// not support attribute class
+		throw new UnsupportedOperationException(format("only %s supported", BasicFileAttributes.class));
 	}
 
 	@Override
@@ -523,7 +559,83 @@ public class S3FileSystemProvider extends FileSystemProvider {
 			LinkOption... options) throws IOException {
 		throw new UnsupportedOperationException();
 	}
-	
+
+	protected ClientConfiguration createClientConfig(Properties props) {
+		ClientConfiguration config = new ClientConfiguration();
+
+		if( props == null )
+			return config;
+
+		if( props.containsKey("connection_timeout") ) {
+			log.trace("AWS client config - connection_timeout: {}", props.getProperty("connection_timeout"));
+			config.setConnectionTimeout(Integer.parseInt(props.getProperty("connection_timeout")));
+		}
+
+		if( props.containsKey("max_connections")) {
+			log.trace("AWS client config - max_connections: {}", props.getProperty("max_connections"));
+			config.setMaxConnections(Integer.parseInt(props.getProperty("max_connections")));
+		}
+
+		if( props.containsKey("max_error_retry")) {
+			log.trace("AWS client config - max_error_retry: {}", props.getProperty("max_error_retry"));
+			config.setMaxErrorRetry(Integer.parseInt(props.getProperty("max_error_retry")));
+		}
+
+		if( props.containsKey("protocol")) {
+			log.trace("AWS client config - protocol: {}", props.getProperty("protocol"));
+			config.setProtocol(Protocol.valueOf(props.getProperty("protocol").toUpperCase()));
+		}
+
+		if( props.containsKey("proxy_domain")) {
+			log.trace("AWS client config - proxy_domain: {}", props.getProperty("proxy_domain"));
+			config.setProxyDomain(props.getProperty("proxy_domain"));
+		}
+
+		if( props.containsKey("proxy_host")) {
+			log.trace("AWS client config - proxy_host: {}", props.getProperty("proxy_host"));
+			config.setProxyHost(props.getProperty("proxy_host"));
+		}
+
+		if( props.containsKey("proxy_port")) {
+			log.trace("AWS client config - proxy_port: {}", props.getProperty("proxy_port"));
+			config.setProxyPort(Integer.parseInt(props.getProperty("proxy_port")));
+		}
+
+		if( props.containsKey("proxy_username")) {
+			log.trace("AWS client config - proxy_username: {}", props.getProperty("proxy_username"));
+			config.setProxyUsername(props.getProperty("proxy_username"));
+		}
+
+		if( props.containsKey("proxy_password")) {
+			log.trace("AWS client config - proxy_password: {}", props.getProperty("proxy_password"));
+			config.setProxyPassword(props.getProperty("proxy_password"));
+		}
+
+		if ( props.containsKey("proxy_workstation")) {
+			log.trace("AWS client config - proxy_workstation: {}", props.getProperty("proxy_workstation"));
+			config.setProxyWorkstation(props.getProperty("proxy_workstation"));
+		}
+
+		if( props.containsKey("socket_send_buffer_size_hints") || props.containsKey("socket_recv_buffer_size_hints") ) {
+			log.trace("AWS client config - socket_send_buffer_size_hints: {}, socket_recv_buffer_size_hints: {}", props.getProperty("socket_send_buffer_size_hints","0"), props.getProperty("socket_recv_buffer_size_hints", "0"));
+			int send = Integer.parseInt(props.getProperty("socket_send_buffer_size_hints","0"));
+			int recv = Integer.parseInt(props.getProperty("socket_recv_buffer_size_hints", "0"));
+			config.setSocketBufferSizeHints(send,recv);
+		}
+
+		if( props.containsKey("socket_timeout")) {
+			log.trace("AWS client config - socket_timeout: {}", props.getProperty("socket_timeout"));
+			config.setSocketTimeout(Integer.parseInt(props.getProperty("socket_timeout")));
+		}
+
+		if( props.containsKey("user_agent")) {
+			log.trace("AWS client config - user_agent: {}", props.getProperty("user_agent"));
+			config.setUserAgent(props.getProperty("user_agent"));
+		}
+
+		return config;
+	}
+
 	// ~~
 	/**
 	 * Create the fileSystem
@@ -532,15 +644,15 @@ public class S3FileSystemProvider extends FileSystemProvider {
 	 * @param secretKey Object maybe null for anonymous authentication
 	 * @return S3FileSystem never null
 	 */
-	protected S3FileSystem createFileSystem(URI uri, Object accessKey,
-			Object secretKey) {
+	protected S3FileSystem createFileSystem(URI uri, Object accessKey, Object secretKey) {
 		AmazonS3Client client;
+		ClientConfiguration config = createClientConfig(props);
 
 		if (accessKey == null && secretKey == null) {
-			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client());
+			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client(config));
 		} else {
-			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client(new BasicAWSCredentials(
-					accessKey.toString(), secretKey.toString())));
+			AWSCredentials credentials = new BasicAWSCredentials(accessKey.toString(), secretKey.toString());
+			client = new AmazonS3Client(new com.amazonaws.services.s3.AmazonS3Client(credentials));
 		}
 
 		if (uri.getHost() != null) {

@@ -1,5 +1,7 @@
 package com.upplication.s3fs;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -1287,4 +1289,58 @@ public class FileSystemProviderTest {
     private FileSystem createNewS3FileSystem() throws IOException {
         return provider.newFileSystem(S3_GLOBAL_URI, buildFakeEnv());
     }
+
+
+	@Test
+	public void testCreateClientConfig() {
+
+		Properties props = new Properties();
+		props.put("connection_timeout", "123");
+		props.put("max_connections", "321");
+		props.put("max_error_retry", "111");
+		props.put("protocol", "https");
+
+		props.put("proxy_domain", "my-domain");
+		props.put("proxy_host", "my-host");
+		props.put("proxy_port", "8888");
+		props.put("proxy_username", "hello");
+		props.put("proxy_password", "world");
+		props.put("proxy_workstation", "none");
+
+		props.put("socket_send_buffer_size_hints", "11");
+		props.put("socket_recv_buffer_size_hints", "99");
+
+		props.put("socket_timeout", "999");
+		props.put("user_agent", "x-no-one");
+
+		ClientConfiguration config = provider.createClientConfig(props);
+
+		assertEquals(123, config.getConnectionTimeout());
+		assertEquals(321, config.getMaxConnections());
+		assertEquals(111, config.getMaxErrorRetry());
+		assertEquals(Protocol.HTTPS, config.getProtocol());
+
+		assertEquals("my-domain", config.getProxyDomain());
+		assertEquals("my-host", config.getProxyHost());
+		assertEquals(8888, config.getProxyPort());
+		assertEquals("hello", config.getProxyUsername());
+		assertEquals("world", config.getProxyPassword());
+		assertEquals("none", config.getProxyWorkstation());
+
+		assertArrayEquals(new int[]{11, 99}, config.getSocketBufferSizeHints());
+		assertEquals( "x-no-one", config.getUserAgent());
+
+		// test only one socket hint component
+		props = new Properties();
+		props.put("socket_send_buffer_size_hints", "555");
+		config = provider.createClientConfig(props);
+		assertArrayEquals(new int[]{555, 0}, config.getSocketBufferSizeHints());
+
+		// test only one socket hint component
+		props = new Properties();
+		props.put("socket_recv_buffer_size_hints", "666");
+		config = provider.createClientConfig(props);
+		assertArrayEquals(new int[]{0, 666}, config.getSocketBufferSizeHints());
+
+	}
 }
