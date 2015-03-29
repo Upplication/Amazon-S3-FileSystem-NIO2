@@ -142,7 +142,7 @@ public class S3Path implements Path {
 	@Override
 	public Path getFileName() {
 		if (!parts.isEmpty()) {
-			return new S3Path(fileSystem, null, parts.subList(parts.size() - 1,
+			return new S3Path(fileSystem, bucket, parts.subList(parts.size() - 1,
 					parts.size()));
 		}
         else {
@@ -173,12 +173,12 @@ public class S3Path implements Path {
 
 	@Override
 	public Path getName(int index) {
-		return new S3Path(fileSystem, null, parts.subList(index, index + 1));
+		return new S3Path(fileSystem, bucket, parts.subList(index, index + 1));
 	}
 
 	@Override
 	public Path subpath(int beginIndex, int endIndex) {
-		return new S3Path(fileSystem, null, parts.subList(beginIndex, endIndex));
+		return new S3Path(fileSystem, bucket, parts.subList(beginIndex, endIndex));
 	}
 
 	@Override
@@ -349,7 +349,7 @@ public class S3Path implements Path {
 			resultParts.add(s3Path.parts.get(i));
 		}
 
-		return new S3Path(fileSystem, null, resultParts);
+		return new S3Path(fileSystem, bucket, resultParts);
 	}
 
 	@Override
@@ -404,7 +404,7 @@ public class S3Path implements Path {
 
 		for (Iterator<String> iterator = parts.iterator(); iterator.hasNext();) {
 			String part = iterator.next();
-			builder.add(new S3Path(fileSystem, null, ImmutableList.of(part)));
+			builder.add(new S3Path(fileSystem, bucket, ImmutableList.of(part)));
 		}
 
 		return builder.build().iterator();
