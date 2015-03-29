@@ -1,13 +1,16 @@
 package com.upplication.s3fs.util;
 
-import com.amazonaws.services.s3.model.*;
-import com.google.common.base.Throwables;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.upplication.s3fs.AmazonS3Client;
 import com.upplication.s3fs.S3Path;
 
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
-
 
 public class S3ObjectSummaryLookup {
 
@@ -21,18 +24,19 @@ public class S3ObjectSummaryLookup {
 
         AmazonS3Client client = s3Path.getFileSystem().getClient();
 
-        S3Object object = getS3Object(s3Path);
+        ObjectMetadata objectMetadata = getS3ObjectMetadata(s3Path);
 
-        if (object != null) {
+        if (objectMetadata != null) {
             S3ObjectSummary result = new S3ObjectSummary();
-            result.setBucketName(object.getBucketName());
-            result.setETag(object.getObjectMetadata().getETag());
-            result.setKey(object.getKey());
-            result.setLastModified(object.getObjectMetadata().getLastModified());
-            result.setSize(object.getObjectMetadata().getContentLength());
+            result.setBucketName(s3Path.getBucket());
+            result.setETag(objectMetadata.getETag());
+            result.setKey(s3Path.getKey());
+            result.setLastModified(objectMetadata.getLastModified());
+            result.setSize(objectMetadata.getContentLength());
 
             return result;
         }
+
         // is a virtual directory
         String key = s3Path.getKey() + "/";
 
@@ -50,11 +54,25 @@ public class S3ObjectSummaryLookup {
         }
     }
 
+    public ObjectMetadata getS3ObjectMetadata(S3Path s3Path) {
+        AmazonS3Client client = s3Path.getFileSystem().getClient();
+        try {
+            return client.getObjectMetadata(s3Path.getBucket(), s3Path.getKey());
+        }
+        catch (AmazonS3Exception e){
+            if (e.getStatusCode() != 404){
+                throw e;
+            }
+            return null;
+        }
+    }
+
     /**
      * get S3Object represented by this S3Path try to access with or without end slash '/'
      * @param s3Path S3Path
      * @return S3Object or null if not exists
      */
+    @Deprecated
     private S3Object getS3Object(S3Path s3Path){
 
         AmazonS3Client client = s3Path.getFileSystem()
@@ -77,6 +95,7 @@ public class S3ObjectSummaryLookup {
      * @param client AmazonS3Client client
      * @return S3Object
      */
+    @Deprecated
     private S3Object getS3Object(String bucket, String key, AmazonS3Client client){
         try {
             S3Object object = client

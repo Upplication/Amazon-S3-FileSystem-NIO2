@@ -205,7 +205,7 @@ public class AmazonS3ClientMock extends AmazonS3Client {
                 .getBucketName());
         s3ObjectSummary.setKey(elem.getS3Object().getKey());
         s3ObjectSummary.setLastModified(elem.getS3Object()
-                .getObjectMetadata().getLastModified());
+				.getObjectMetadata().getLastModified());
         s3ObjectSummary.setOwner(owner);
         s3ObjectSummary.setETag(elem.getS3Object()
                 .getObjectMetadata().getETag());
@@ -265,6 +265,20 @@ public class AmazonS3ClientMock extends AmazonS3Client {
         else{
             return result.getS3Object();
         }
+	}
+
+	@Override
+	public ObjectMetadata getObjectMetadata(String bucketName, String key)  {
+		S3Element result = find(bucketName, key);
+
+		if (result == null){
+			AmazonS3Exception amazonS3Exception = new AmazonS3Exception("not found with key: " + key);
+			amazonS3Exception.setStatusCode(404);
+			throw amazonS3Exception;
+		}
+		else{
+			return result.getS3Object().getObjectMetadata();
+		}
 	}
 
 	@Override
@@ -405,7 +419,7 @@ public class AmazonS3ClientMock extends AmazonS3Client {
 			object.setObjectContent(null);
 		} else {
 			metadata.setContentLength(attr.size());
-			object.setObjectContent( new ByteArrayInputStream(Files.readAllBytes(elem)));
+			object.setObjectContent(new ByteArrayInputStream(Files.readAllBytes(elem)));
 		}
 
 		object.setObjectMetadata(metadata);
