@@ -19,34 +19,38 @@ public class S3ObjectSummaryLookup {
      */
     public S3ObjectSummary lookup(S3Path s3Path) throws NoSuchFileException {
 
-        AmazonS3Client client = s3Path.getFileSystem().getClient();
-
-        S3Object object = getS3Object(s3Path);
-
-        if (object != null) {
-            S3ObjectSummary result = new S3ObjectSummary();
-            result.setBucketName(object.getBucketName());
-            result.setETag(object.getObjectMetadata().getETag());
-            result.setKey(object.getKey());
-            result.setLastModified(object.getObjectMetadata().getLastModified());
-            result.setSize(object.getObjectMetadata().getContentLength());
-
-            return result;
+        S3ObjectSummary summary = s3Path.fetchObjectSummary();
+        if( summary != null ) {
+            return summary;
         }
-        // is a virtual directory
-        String key = s3Path.getKey() + "/";
+
+        AmazonS3Client client = s3Path.getFileSystem().getClient();
 
         ListObjectsRequest request = new ListObjectsRequest();
         request.setBucketName(s3Path.getBucket());
-        request.setPrefix(key);
+        request.setPrefix(s3Path.getKey());
         request.setMaxKeys(1);
         ObjectListing current = client.listObjects(request);
 
         if (!current.getObjectSummaries().isEmpty()){
             return current.getObjectSummaries().get(0);
         }
-        else{
-            throw new NoSuchFileException(s3Path.toString());
+        else {
+            throw new NoSuchFileException("s3://" + s3Path.getBucket() + "/" + s3Path.toString());
+        }
+    }
+
+    @Deprecated
+    public ObjectMetadata getS3ObjectMetadata(S3Path s3Path) {
+        AmazonS3Client client = s3Path.getFileSystem().getClient();
+        try {
+            return client.getObjectMetadata(s3Path.getBucket(), s3Path.getKey());
+        }
+        catch (AmazonS3Exception e){
+            if (e.getStatusCode() != 404){
+                throw e;
+            }
+            return null;
         }
     }
 

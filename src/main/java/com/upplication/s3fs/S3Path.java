@@ -1,6 +1,11 @@
 package com.upplication.s3fs;
 
-import com.google.common.base.*;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -8,7 +13,11 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.*;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +40,8 @@ public class S3Path implements Path {
 	 * actual filesystem
 	 */
 	private S3FileSystem fileSystem;
+
+	private S3ObjectSummary objectSummary;
 
 	/**
 	 * path must be a string of the form "/{bucket}", "/{bucket}/{key}" or just
@@ -458,7 +469,27 @@ public class S3Path implements Path {
 		result = 31 * result + parts.hashCode();
 		return result;
 	}
-	
+
+	/**
+	 * This method returns the cached {@link S3ObjectSummary} instance if this path has been created
+	 * while iterating a directory structures by the {@link S3Iterator}.
+	 * <br>
+	 * After calling this method the cached object is reset, so any following method invocation will return {@code null}.
+	 * This is necessary to discard the object meta-data and force to reload file attributes when required.
+	 *
+	 * @return The cached {@link S3ObjectSummary} for this path if any.
+	 */
+	public S3ObjectSummary fetchObjectSummary() {
+		S3ObjectSummary result = objectSummary;
+		objectSummary = null;
+		return result;
+	}
+
+	// note: package scope to limit the access to this setter
+	void setObjectSummary(S3ObjectSummary objectSummary) {
+		this.objectSummary = objectSummary;
+	}
+
 	// ~ helpers methods
 
 	private static Function<String, String> strip(final String ... strs) {

@@ -13,9 +13,23 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -522,4 +536,165 @@ public class FilesOperationsIT {
             return dir;
         }
 	}
+
+	@Test
+	public void testBucketIsDirectory() throws IOException {
+
+		Path path = fileSystemAmazon.getPath(bucket, "/");
+		BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
+		assertEquals(0, attrs.size());
+		assertTrue(attrs.creationTime().toMillis()>0);
+		assertTrue(attrs.lastAccessTime().toMillis()>0);
+		assertTrue(attrs.lastModifiedTime().toMillis()>0);
+		assertTrue(attrs.isDirectory());
+
+	}
+
+	@Test
+	public void testListBucketContent() throws IOException {
+
+		Path root = fileSystemAmazon.getPath(bucket);
+		Path dir1 = root.resolve("dir_" + UUID.randomUUID().toString());
+		Files.createDirectory(dir1);
+
+		Path file1 = root.resolve("file_" + UUID.randomUUID().toString());
+		Path file2 = root.resolve("file_" + UUID.randomUUID().toString());
+		Path file3 = root.resolve("file_" + UUID.randomUUID().toString());
+		Files.createFile(file1);
+		Files.createFile(file2);
+
+		List<Path> list = fileList(root);
+		assertTrue(list.contains(dir1));
+		assertTrue(list.contains(file1));
+		assertTrue(list.contains(file2));
+		assertFalse(list.contains(file3));
+	}
+
+
+	private static List<Path> fileList(Path dir) throws IOException {
+		List<Path> fileNames = new ArrayList<>();
+		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(dir)) {
+			for (Path path : directoryStream) {
+				fileNames.add(path);
+			}
+		} catch (IOException ex) {
+			throw ex;
+		}
+		return fileNames;
+	}
+
+	@Test
+	public void testReadAttributes() throws IOException {
+
+		long begin = System.currentTimeMillis();
+		Path root = fileSystemAmazon.getPath(bucket);
+		Path dir1 = root.resolve("dir_" + UUID.randomUUID().toString());
+		Files.createDirectory(dir1);
+
+		// create a *directory* and tests for valid attributes
+		Path path1 = dir1.resolve("hello");
+		Files.createDirectory(path1);
+
+		BasicFileAttributes path1Attr = Files.readAttributes(path1, BasicFileAttributes.class);
+		assertTrue(path1Attr.isDirectory());
+		assertEquals(0, path1Attr.size());
+		assertTrue(begin <= path1Attr.creationTime().toMillis());
+		assertEquals(path1Attr.creationTime(), path1Attr.lastAccessTime());
+		assertEquals(path1Attr.lastAccessTime(), path1Attr.lastModifiedTime());
+
+
+		// create a *file* and tests for valid attributes
+		Path path2 = dir1.resolve("world");
+		Files.createFile(path2);
+
+		BasicFileAttributes path2Attr = Files.readAttributes(path2, BasicFileAttributes.class);
+		assertTrue(path2Attr.isRegularFile());
+		assertEquals(0, path1Attr.size());
+		assertTrue(begin <= path2Attr.creationTime().toMillis());
+		assertEquals(path1Attr.creationTime(), path1Attr.lastAccessTime());
+		assertEquals(path1Attr.lastAccessTime(), path1Attr.lastModifiedTime());
+
+		// modify file content
+		final byte[] value = "Hello world!".getBytes();
+		Files.write(path2, value);
+		path2Attr = Files.readAttributes(path2, BasicFileAttributes.class);
+		assertTrue(path2Attr.isRegularFile());
+		assertEquals(value.length, path2Attr.size() );
+
+	}
+
+	@Test(expected = NoSuchFileException.class)
+	public void testMissingFile() throws IOException {
+
+		Path root = fileSystemAmazon.getPath(bucket);
+		Path path = root.resolve("dir_" + UUID.randomUUID().toString());
+		Files.readAttributes(path, BasicFileAttributes.class);
+
+	}
+
+	@Test
+	public void testWalkDirectory() throws IOException {
+
+		Path root = fileSystemAmazon.getPath(bucket);
+		Path base = root.resolve("dir_" + UUID.randomUUID().toString());
+		Files.createDirectory(base);
+
+		/* Create the following directory structure:
+
+			 $BASE/
+				file1.txt
+				file2.txt
+				dir1/
+					file3.txt
+				dir2/
+					file4.txt
+					file5.txt
+				dir2/sub-dir/
+					file6.txt
+
+		 */
+		Files.createDirectories(base.resolve("dir1"));
+		Files.createDirectories(base.resolve("dir2/sub-dir"));
+
+		Files.createFile(base.resolve("file1.txt"));
+		Files.createFile(base.resolve("file2.txt"));
+		Files.createFile(base.resolve("dir1/file3.txt"));
+		Files.createFile(base.resolve("dir2/file4.txt"));
+		Files.createFile(base.resolve("dir2/file5.txt"));
+		Files.createFile(base.resolve("dir2/sub-dir/file6.txt"));
+
+		System.out.println(">> First Walk directory starts here");
+		final Set<Path> files = new HashSet<>();
+		Files.walkFileTree(base, new SimpleFileVisitor<Path>() {
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				files.add(file);
+				return FileVisitResult.CONTINUE;
+			}
+		});
+
+		assertEquals(6, files.size());
+		assertTrue(files.contains(base.resolve("file1.txt")));
+		assertTrue(files.contains(base.resolve("file2.txt")));
+		assertTrue(files.contains(base.resolve("dir1/file3.txt")));
+		assertTrue( files.contains(base.resolve("dir2/file4.txt")) );
+		assertTrue(files.contains(base.resolve("dir2/file5.txt")));
+		assertTrue(files.contains(base.resolve("dir2/sub-dir/file6.txt")));
+
+
+		System.out.println(">> Second Walk directory starts here");
+		files.clear();
+		Files.walkFileTree(base, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				files.add(file);
+				return FileVisitResult.CONTINUE;
+			}
+		});
+
+		assertEquals(4, files.size());
+		assertTrue(files.contains(base.resolve("file1.txt")));
+		assertTrue(files.contains(base.resolve("file2.txt")));
+		assertTrue(files.contains(base.resolve("dir1")));
+		assertTrue(files.contains(base.resolve("dir2")));
+	}
+
 }
