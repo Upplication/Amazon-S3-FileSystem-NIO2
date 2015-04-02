@@ -1,7 +1,13 @@
 package com.upplication.s3fs;
 
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.Grant;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Owner;
+import com.amazonaws.services.s3.model.Permission;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -174,17 +180,24 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
 		Preconditions.checkArgument(!s3Path.getKey().equals(""),
 				"cannot create InputStream for root directory: %s", s3Path);
-	
-		InputStream res = s3Path.getFileSystem().getClient()
-				.getObject(s3Path.getBucket(), s3Path.getKey())
-				.getObjectContent();
-	
-		if (res == null){
-			throw new IOException("path is a directory");
+
+		InputStream result;
+		try {
+			result = s3Path.getFileSystem().getClient()
+					.getObject(s3Path.getBucket(), s3Path.getKey())
+					.getObjectContent();
+
+			if (result == null)
+				throw new IOException(String.format("The specified path is a directory: %s", path));
 		}
-		else{
-			return res;
+		catch (AmazonS3Exception e) {
+			if (e.getStatusCode() == 404)
+				throw new NoSuchFileException(path.toString());
+			// otherwise throws a generic IO exception
+			throw new IOException(String.format("Cannot access file: %s", path),e);
 		}
+
+		return result;
 	}
 
 	@Override
