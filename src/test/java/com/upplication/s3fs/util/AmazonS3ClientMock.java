@@ -930,7 +930,7 @@ public class AmazonS3ClientMock implements AmazonS3 {
 
 	@Override
 	public PutObjectResult putObject(PutObjectRequest putObjectRequest) throws AmazonClientException, AmazonServiceException {
-		throw new UnsupportedOperationException();
+		return putObject(putObjectRequest.getBucketName(), putObjectRequest.getKey(), putObjectRequest.getInputStream(), putObjectRequest.getMetadata());
 	}
 
 	@Override

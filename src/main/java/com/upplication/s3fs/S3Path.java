@@ -33,6 +33,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.amazonaws.services.s3.model.S3ObjectId;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -127,6 +128,10 @@ public class S3Path implements Path {
 	 */
 	public String getKey() {
 		return fileSystem.parts2Key(parts);
+	}
+
+	public S3ObjectId toS3ObjectId() {
+		return new S3ObjectId(fileStore.getBucket().getName(), getKey());
 	}
 
 	@Override

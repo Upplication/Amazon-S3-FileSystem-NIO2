@@ -421,6 +421,45 @@ public class S3FileSystemProviderTest extends S3UnitTestBase {
 	// newOutputStream 
 
 	@Test
+	public void outputStreamFileExists() throws IOException {
+		Path base = getS3Directory();
+
+		Path file = base.resolve("file1");
+		Files.createFile(file);
+
+		final String content = "sample content";
+
+		try (OutputStream stream = s3fsProvider.newOutputStream(file)) {
+			stream.write(content.getBytes());
+			stream.flush();
+			stream.close();
+		}
+		// get the input
+		byte[] buffer = Files.readAllBytes(file);
+		// check
+		assertArrayEquals(content.getBytes(), buffer);
+	}
+
+	@Test
+	public void outputStreamFileNotExists() throws IOException {
+		Path base = getS3Directory();
+
+		Path file = base.resolve("file1");
+
+		final String content = "sample content";
+
+		try (OutputStream stream = s3fsProvider.newOutputStream(file)) {
+			stream.write(content.getBytes());
+			stream.flush();
+			stream.close();
+		}
+		// get the input
+		byte[] buffer = Files.readAllBytes(file);
+		// check
+		assertArrayEquals(content.getBytes(), buffer);
+	}
+
+	@Test
 	public void outputStreamWithCreateNew() throws IOException {
 		Path base = getS3Directory();
 
@@ -467,24 +506,11 @@ public class S3FileSystemProviderTest extends S3UnitTestBase {
 		s3fsProvider.newOutputStream(file, StandardOpenOption.CREATE_NEW);
 	}
 
-	@Test
+	@Test(expected = FileAlreadyExistsException.class)
 	public void outputStreamWithCreateAndFileExists() throws IOException {
 		Path base = getS3Directory();
-
-		Path file = base.resolve("file1");
-		Files.createFile(file);
-
-		final String content = "sample content";
-
-		try (OutputStream stream = s3fsProvider.newOutputStream(file, StandardOpenOption.CREATE)) {
-			stream.write(content.getBytes());
-			stream.flush();
-			stream.close();
-		}
-		// get the input
-		byte[] buffer = Files.readAllBytes(file);
-		// check
-		assertArrayEquals(content.getBytes(), buffer);
+		Path file = Files.createFile(base.resolve("file1"));
+		s3fsProvider.newOutputStream(file, StandardOpenOption.CREATE);
 	}
 
 	@Test
