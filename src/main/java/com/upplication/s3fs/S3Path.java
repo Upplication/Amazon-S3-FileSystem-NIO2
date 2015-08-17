@@ -57,6 +57,8 @@ public class S3Path implements Path {
 	 */
 	private S3FileSystem fileSystem;
 
+	private S3FileAttributes fileAttributes;
+
 	/**
 	 * path must be a string of the form "/{bucket}", "/{bucket}/{key}" or just
 	 * "{key}".
@@ -453,6 +455,18 @@ public class S3Path implements Path {
 				return input != null && !input.isEmpty();
 			}
 		};
+	}
+
+	public boolean hasFileAttributes() {
+		return fileAttributes != null;
+	}
+
+	public S3FileAttributes getFileAttributes() {
+		return fileAttributes;
+	}
+
+	public void setFileAttributes(S3FileAttributes fileAttributes) {
+		this.fileAttributes = fileAttributes;
 	}
 
 	/*

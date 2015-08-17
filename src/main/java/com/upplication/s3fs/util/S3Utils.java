@@ -61,9 +61,18 @@ public class S3Utils {
      * @return S3FileAttributes
      */
     public S3FileAttributes getS3FileAttributes(S3Path s3Path) throws NoSuchFileException {
-        String key = s3Path.getKey();
-        S3ObjectSummary objectSummary = getS3ObjectSummary(s3Path);
+        if (!s3Path.hasFileAttributes()) {
+            s3Path.setFileAttributes(toS3FileAttributes(getS3ObjectSummary(s3Path), s3Path.getKey()));
+        }
+        return s3Path.getFileAttributes();
+    }
 
+    /**
+     * convert S3ObjectSummary tpo S3FileAttributes
+     * @param objectSummary S3ObjectSummary mandatory not null
+     * @return S3FileAttributes
+     */
+    public static S3FileAttributes toS3FileAttributes(S3ObjectSummary objectSummary, String key) {
         // parse the data to BasicFileAttributes.
         FileTime lastModifiedTime = null;
         if (objectSummary.getLastModified() != null){
@@ -77,8 +86,7 @@ public class S3Utils {
         if (key.endsWith("/") && resolvedKey.equals(key) ||
                 resolvedKey.equals(key + "/")) {
             directory = true;
-        }
-        else if (key.isEmpty()) { // is a bucket (no key)
+        } else if (key.isEmpty()) { // is a bucket (no key)
             directory = true;
             resolvedKey = "/";
         }
@@ -88,8 +96,9 @@ public class S3Utils {
             size = 0;
             // delete extra part
             resolvedKey = key + "/";
-        } else
+        } else {
             regularFile = true;
+        }
         return new S3FileAttributes(resolvedKey, lastModifiedTime, size, directory, regularFile);
     }
 }

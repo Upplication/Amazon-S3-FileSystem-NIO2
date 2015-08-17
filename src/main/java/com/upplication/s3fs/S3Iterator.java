@@ -16,6 +16,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import static com.upplication.s3fs.util.S3Utils.toS3FileAttributes;
+
 /**
  * S3 iterator over folders at first level.
  * Future versions of this class should be return the elements
@@ -118,7 +120,6 @@ public class S3Iterator implements Iterator<Path> {
         items.addAll(parentPaths);
     }
 
-
     /**
      * add to the listPath the elements at the same level that s3Path
      * @param key the uri to parse
@@ -138,6 +139,7 @@ public class S3Iterator implements Iterator<Path> {
             String immediateDescendantKey = getImmediateDescendant(key, objectSummaryKey);
             if (immediateDescendantKey != null) {
                 S3Path descendentPart = new S3Path(fileSystem, fileStore, fileSystem.key2Parts(immediateDescendantKey));
+                descendentPart.setFileAttributes(toS3FileAttributes(objectSummary, immediateDescendantKey));
 
                 if (!listPath.contains(descendentPart)) {
                     listPath.add(descendentPart);
