@@ -44,7 +44,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AbstractAmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.S3ResponseMetadata;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -119,7 +119,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 import com.amazonaws.services.s3.model.VersionListing;
 import com.amazonaws.util.StringUtils;
 
-public class AmazonS3ClientMock implements AmazonS3 {
+public class AmazonS3ClientMock extends AbstractAmazonS3 {
     /**
      * max elements amazon aws
      */
