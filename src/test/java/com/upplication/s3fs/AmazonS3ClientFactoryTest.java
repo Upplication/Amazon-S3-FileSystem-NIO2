@@ -93,7 +93,7 @@ public class AmazonS3ClientFactoryTest {
         assertEquals("I'll never teeeeeellllll!", credentials.getAWSSecretKey());
         assertNull(client.getRequestMetricsCollector());
         ClientConfiguration clientConfiguration = client.getClientConfiguration();
-        assertEquals(50000, clientConfiguration.getConnectionTimeout());
+        assertEquals(10000, clientConfiguration.getConnectionTimeout());
         assertEquals(50, clientConfiguration.getMaxConnections());
         assertEquals(-1, clientConfiguration.getMaxErrorRetry());
         assertEquals(Protocol.HTTPS, clientConfiguration.getProtocol());
