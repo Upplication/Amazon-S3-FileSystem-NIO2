@@ -52,8 +52,14 @@ public abstract class AmazonS3Factory {
 
     public AmazonS3 getAmazonS3(URI uri, Properties props) {
         AmazonS3 client = createAmazonS3(getCredentialsProvider(props), getClientConfiguration(props), getRequestMetricsCollector(props));
-        if (uri.getHost() != null)
-            client.setEndpoint(uri.getHost());
+        if (uri.getHost() != null) {
+            if (uri.getPort() != -1) {
+                client.setEndpoint(uri.getHost() + ":" + String.valueOf(uri.getPort()));
+            }
+            else {
+                client.setEndpoint(uri.getHost());
+            }
+        }
         return client;
     }
 
