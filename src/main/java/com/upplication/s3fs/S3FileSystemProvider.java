@@ -105,6 +105,24 @@ public class S3FileSystemProvider extends FileSystemProvider {
     public static final String AMAZON_S3_FACTORY_CLASS = "s3fs_amazon_s3_factory";
 
     private static final ConcurrentMap<String, S3FileSystem> fileSystems = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Properties> fileSystemProperties = new ConcurrentHashMap<>();
+    
+    private static final HashMap<String, String[]> envVarAlternatives;
+    static {
+    	envVarAlternatives = new HashMap<String, String[]>();
+
+    	String[] access_key_alternatives = {
+				com.amazonaws.SDKGlobalConfiguration.ACCESS_KEY_ENV_VAR, 
+				com.amazonaws.SDKGlobalConfiguration.ALTERNATE_ACCESS_KEY_ENV_VAR
+			};
+    	envVarAlternatives.put( ACCESS_KEY, access_key_alternatives );
+    			
+    	String[] secret_key_alternatives = {
+    			com.amazonaws.SDKGlobalConfiguration.SECRET_KEY_ENV_VAR,
+				com.amazonaws.SDKGlobalConfiguration.ALTERNATE_SECRET_KEY_ENV_VAR
+    		};
+    	envVarAlternatives.put( SECRET_KEY, secret_key_alternatives );
+    }
 
     private S3Utils s3Utils = new S3Utils();
     private Cache cache = new Cache();
@@ -128,6 +146,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
         // create the filesystem with the final properties, store and return
         S3FileSystem fileSystem = createFileSystem(uri, props);
         fileSystems.put(fileSystem.getKey(), fileSystem);
+        fileSystemProperties.put(getFileSystemPropsKey(uri), props);
         return fileSystem;
     }
 
@@ -153,8 +172,20 @@ public class S3FileSystemProvider extends FileSystemProvider {
         }
         return props;
     }
+    
+    private String getFileSystemPropsKey(URI uri) {
+    	if (uri.getAuthority() == null) {
+    		return Constants.S3_HOSTNAME;
+    	} else {
+    		return uri.getAuthority();
+    	}
+    }
 
     private String getFileSystemKey(URI uri) {
+        return getFileSystemKey(uri, getProperties(uri, null));
+    }
+
+    private String getFileSystemKeyFromURI(URI uri) {
         return getFileSystemKey(uri, getProperties(uri, null));
     }
 
@@ -187,7 +218,13 @@ public class S3FileSystemProvider extends FileSystemProvider {
             if (host.length() == 0) {
                 host = Constants.S3_HOSTNAME;
             }
-            return authority + "@" + host;
+            String ak = authority;
+            int keySeparator = authority.indexOf(":");
+            if(keySeparator > 0) {
+            	ak= authority.substring(0, keySeparator);
+            }
+            //return authority + "@" + host;
+            return ak + "@" + host;
         } else {
             String accessKey = (String) props.get(ACCESS_KEY);
             return (accessKey != null ? accessKey + "@" : "") +
@@ -263,7 +300,16 @@ public class S3FileSystemProvider extends FileSystemProvider {
         if (systemGetEnv(key) != null) {
             props.setProperty(key, systemGetEnv(key));
             return true;
+        } 
+        /*else if (!envVarAlternatives.containsKey(key)) {
+        	for (String altKey : envVarAlternatives.get(key)) {
+        		if (systemGetEnv(altKey) != null) {
+        			props.setProperty(key, systemGetEnv(key));
+        			return true;
+        		}
+        	}
         }
+        */
         return false;
     }
 
@@ -293,9 +339,13 @@ public class S3FileSystemProvider extends FileSystemProvider {
         String key = this.getFileSystemKey(uri);
         if (fileSystems.containsKey(key)) {
             return fileSystems.get(key);
-        } else {
-            throw new FileSystemNotFoundException("S3 filesystem not yet created. Use newFileSystem() instead");
-        }
+        } else if (fileSystemProperties.containsKey(uri.getAuthority())){
+        	key = this.getFileSystemKey(uri, fileSystemProperties.get(getFileSystemPropsKey(uri)) );
+        	if (fileSystems.containsKey(key)) {
+        		return fileSystems.get(key);
+        	}
+        } 
+        throw new FileSystemNotFoundException("S3 filesystem not yet created. Use newFileSystem() instead");
     }
 
     private S3Path toS3Path(Path path) {

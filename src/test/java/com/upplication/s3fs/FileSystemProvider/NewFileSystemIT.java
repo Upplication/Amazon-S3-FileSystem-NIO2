@@ -10,9 +10,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.ProviderNotFoundException; 
+import java.lang.IllegalArgumentException;
+import java.lang.SecurityException;
 import java.nio.file.FileSystems;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
+
 
 import static com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY;
 import static com.upplication.s3fs.AmazonS3Factory.SECRET_KEY;
@@ -62,6 +67,17 @@ public class NewFileSystemIT {
         provider.newFileSystem(S3_GLOBAL_URI_IT, env);
 
         verifyCreationWithParams(env.get(ACCESS_KEY), env.get(SECRET_KEY), S3_GLOBAL_URI_IT);
+    }
+
+    @Test
+    public void createsAuthenticatedByEnvOverridesPropsNIO() {
+        final Map<String, String> env = buildFakeEnv();
+        try {
+        	FileSystem fs = FileSystems.newFileSystem(S3_GLOBAL_URI_IT, env);
+        	assertEquals( "Mismatch when retrieving file system.", fs, FileSystems.getFileSystem(S3_GLOBAL_URI_IT));
+        } catch (Exception e) {
+        	fail("File system creation failed");
+        }
     }
 
     @Test
