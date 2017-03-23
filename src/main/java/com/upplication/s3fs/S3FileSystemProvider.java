@@ -146,7 +146,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
         // create the filesystem with the final properties, store and return
         S3FileSystem fileSystem = createFileSystem(uri, props);
         fileSystems.put(fileSystem.getKey(), fileSystem);
-        fileSystemProperties.put(uri.getAuthority(), props);
+        fileSystemProperties.put(getFileSystemPropsKey(uri), props);
         return fileSystem;
     }
 
@@ -171,6 +171,14 @@ public class S3FileSystemProvider extends FileSystemProvider {
             }
         }
         return props;
+    }
+    
+    private String getFileSystemPropsKey(URI uri) {
+    	if (uri.getAuthority() == null) {
+    		return Constants.S3_HOSTNAME;
+    	} else {
+    		return uri.getAuthority();
+    	}
     }
 
     private String getFileSystemKey(URI uri) {
@@ -332,7 +340,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
         if (fileSystems.containsKey(key)) {
             return fileSystems.get(key);
         } else if (fileSystemProperties.containsKey(uri.getAuthority())){
-        	key = this.getFileSystemKey(uri, fileSystemProperties.get(uri.getAuthority()) );
+        	key = this.getFileSystemKey(uri, fileSystemProperties.get(getFileSystemPropsKey(uri)) );
         	if (fileSystems.containsKey(key)) {
         		return fileSystems.get(key);
         	}
