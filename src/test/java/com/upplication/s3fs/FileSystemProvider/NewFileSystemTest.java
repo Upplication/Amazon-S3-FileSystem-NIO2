@@ -63,19 +63,19 @@ public class NewFileSystemTest extends S3UnitTestBase {
     @Test
     public void newS3FileSystemWithEmptyHost() throws IOException {
         FileSystem s3fs = s3fsProvider.newFileSystem(URI.create("s3://access-key:secret-key@/bucket/file"), ImmutableMap.<String, Object>of());
-        assertEquals("access-key:secret-key@" + Constants.S3_HOSTNAME, ((S3FileSystem) s3fs).getKey());
+        assertEquals("access-key@" + Constants.S3_HOSTNAME, ((S3FileSystem) s3fs).getKey());
     }
 
     @Test
 	public void newS3FileSystemWithCustomHost() {
 		FileSystem s3fs = s3fsProvider.newFileSystem(URI.create("s3://access-key:secret-key@my.ceph.storage"), ImmutableMap.<String, Object> of());
-		assertEquals("access-key:secret-key@my.ceph.storage", ((S3FileSystem) s3fs).getKey());
+		assertEquals("access-key@my.ceph.storage", ((S3FileSystem) s3fs).getKey());
 	}
 
 	@Test
 	public void newS3FileSystemWithCustomHostAndBucket() {
 		FileSystem s3fs = s3fsProvider.newFileSystem(URI.create("s3://access-key:secret-key@my.ceph.storage/bucket"), ImmutableMap.<String, Object> of());
-		assertEquals("access-key:secret-key@my.ceph.storage", ((S3FileSystem) s3fs).getKey());
+		assertEquals("access-key@my.ceph.storage", ((S3FileSystem) s3fs).getKey());
 	}
 
 	@Test

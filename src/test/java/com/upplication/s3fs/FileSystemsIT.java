@@ -53,6 +53,12 @@ public class FileSystemsIT {
         FileSystem fileSystem = FileSystems.getFileSystem(uriGlobal);
         assertSame(fileSystemAmazon, fileSystem);
     }
+    
+    @Test
+    public void buildEnvImplicitCredentials() {
+        FileSystem fileSystem = FileSystems.getFileSystem(S3_GLOBAL_URI_IT);
+        assertSame(fileSystemAmazon, fileSystem);
+    }
 
     @Test
     public void buildEnvAnotherURIReturnDifferent() throws IOException {

@@ -187,7 +187,13 @@ public class S3FileSystemProvider extends FileSystemProvider {
             if (host.length() == 0) {
                 host = Constants.S3_HOSTNAME;
             }
-            return authority + "@" + host;
+            String ak = authority;
+            int keySeparator = authority.indexOf(":");
+            if(keySeparator > 0) {
+            	ak= authority.substring(0, keySeparator);
+            }
+            //return authority + "@" + host;
+            return ak + "@" + host;
         } else {
             String accessKey = (String) props.get(ACCESS_KEY);
             return (accessKey != null ? accessKey + "@" : "") +
