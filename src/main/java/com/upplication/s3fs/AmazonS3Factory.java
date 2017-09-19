@@ -8,6 +8,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.metrics.RequestMetricCollector;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.S3ClientOptions;
 
 import java.net.URI;
 import java.util.Properties;
@@ -35,6 +36,7 @@ public abstract class AmazonS3Factory {
     public static final String SOCKET_TIMEOUT = "s3fs_socket_timeout";
     public static final String USER_AGENT = "s3fs_user_agent";
     public static final String SIGNER_OVERRIDE = "s3fs_signer_override";
+    public static final String PATH_STYLE_ACCESS = "s3fs_path_style_access";
 
     /**
      * Build a new Amazon S3 instance with the URI and the properties provided
@@ -49,6 +51,10 @@ public abstract class AmazonS3Factory {
                 client.setEndpoint(uri.getHost() + ':' + uri.getPort());
             else
                 client.setEndpoint(uri.getHost());
+        }
+        if(props.get(PATH_STYLE_ACCESS) != null && 
+        		Boolean.parseBoolean(props.getProperty(PATH_STYLE_ACCESS))) {
+        	client.setS3ClientOptions(S3ClientOptions.builder().setPathStyleAccess(true).build());
         }
         return client;
     }
@@ -118,7 +124,7 @@ public abstract class AmazonS3Factory {
         if (props.getProperty(USER_AGENT) != null)
             clientConfiguration.setUserAgentPrefix(props.getProperty(USER_AGENT));
         if(props.getProperty(SIGNER_OVERRIDE) != null)
-            clientConfiguration.setSignerOverride(props.getProperty(SIGNER_OVERRIDE));
+            clientConfiguration.setSignerOverride(props.getProperty(SIGNER_OVERRIDE));        
         return clientConfiguration;
     }
 
