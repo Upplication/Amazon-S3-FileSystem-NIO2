@@ -34,6 +34,7 @@ public abstract class AmazonS3Factory {
     public static final String SOCKET_RECEIVE_BUFFER_SIZE_HINT = "s3fs_socket_receive_buffer_size_hint";
     public static final String SOCKET_TIMEOUT = "s3fs_socket_timeout";
     public static final String USER_AGENT = "s3fs_user_agent";
+    public static final String SIGNER_OVERRIDE = "s3fs_signer_override";
 
     /**
      * Build a new Amazon S3 instance with the URI and the properties provided
@@ -116,6 +117,8 @@ public abstract class AmazonS3Factory {
             clientConfiguration.setSocketTimeout(Integer.parseInt(props.getProperty(SOCKET_TIMEOUT)));
         if (props.getProperty(USER_AGENT) != null)
             clientConfiguration.setUserAgentPrefix(props.getProperty(USER_AGENT));
+        if(props.getProperty(SIGNER_OVERRIDE) != null)
+            clientConfiguration.setSignerOverride(props.getProperty(SIGNER_OVERRIDE));
         return clientConfiguration;
     }
 

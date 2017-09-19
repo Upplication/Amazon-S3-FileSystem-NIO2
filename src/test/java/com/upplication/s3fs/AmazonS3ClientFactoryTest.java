@@ -19,6 +19,7 @@ import static com.upplication.s3fs.AmazonS3Factory.SOCKET_RECEIVE_BUFFER_SIZE_HI
 import static com.upplication.s3fs.AmazonS3Factory.SOCKET_SEND_BUFFER_SIZE_HINT;
 import static com.upplication.s3fs.AmazonS3Factory.SOCKET_TIMEOUT;
 import static com.upplication.s3fs.AmazonS3Factory.USER_AGENT;
+import static com.upplication.s3fs.AmazonS3Factory.SIGNER_OVERRIDE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -58,6 +59,7 @@ public class AmazonS3ClientFactoryTest {
         props.setProperty(SOCKET_RECEIVE_BUFFER_SIZE_HINT, "49000");
         props.setProperty(SOCKET_TIMEOUT, "30");
         props.setProperty(USER_AGENT, "I-am-Groot");
+        props.setProperty(SIGNER_OVERRIDE, "S3SignerType");
         ExposingAmazonS3Client client = (ExposingAmazonS3Client) clientFactory.getAmazonS3(S3EndpointConstant.S3_GLOBAL_URI_TEST, props);
         AWSCredentialsProvider credentialsProvider = client.getAWSCredentialsProvider();
         AWSCredentials credentials = credentialsProvider.getCredentials();
@@ -79,6 +81,7 @@ public class AmazonS3ClientFactoryTest {
         assertEquals(49000, clientConfiguration.getSocketBufferSizeHints()[1]);
         assertEquals(30, clientConfiguration.getSocketTimeout());
         assertEquals("I-am-Groot", clientConfiguration.getUserAgent());
+        assertEquals("S3SignerType", clientConfiguration.getSignerOverride());
     }
 
     @Test
@@ -108,6 +111,7 @@ public class AmazonS3ClientFactoryTest {
         assertEquals(0, clientConfiguration.getSocketBufferSizeHints()[1]);
         assertEquals(50000, clientConfiguration.getSocketTimeout());
         assertTrue(clientConfiguration.getUserAgent().startsWith("aws-sdk-java"));
+        assertNull(clientConfiguration.getSignerOverride());
     }
 
     @Test(expected = IllegalArgumentException.class)
