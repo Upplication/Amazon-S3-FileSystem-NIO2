@@ -30,14 +30,30 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
     private final AmazonS3 client;
     private final String endpoint;
     private int cache;
+    private final String arnKey;
+    private final boolean requiresSseEncrypt;
 
-    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
+    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint, boolean requiresSseEncrypt,String arnKey) {
         this.provider = provider;
         this.key = key;
         this.client = client;
         this.endpoint = endpoint;
         this.cache = 60000; // 1 minute cache for the s3Path
+        this.arnKey = arnKey;
+        this.requiresSseEncrypt = requiresSseEncrypt;
     }
+    
+    /**
+     * Construct a File system with requiresSseEncrypt eq to false
+     * @param provider
+     * @param key
+     * @param client
+     * @param endpoint
+     */
+    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
+        this(provider,key,client,endpoint,false,null);
+    }
+   
 
     @Override
     public S3FileSystemProvider provider() {
@@ -48,6 +64,15 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
         return key;
     }
 
+    public String getArnKey() {
+ 		return arnKey;
+ 	}
+ 
+ 	public boolean requiresSseEncrypt() {
+ 		return requiresSseEncrypt;
+ 	}
+    
+    
     @Override
     public void close() throws IOException {
         this.provider.close(this);

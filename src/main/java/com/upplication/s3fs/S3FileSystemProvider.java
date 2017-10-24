@@ -16,6 +16,7 @@ import com.upplication.s3fs.attribute.S3PosixFileAttributeView;
 import com.upplication.s3fs.attribute.S3PosixFileAttributes;
 import com.upplication.s3fs.util.AttributesUtils;
 import com.upplication.s3fs.util.Cache;
+import com.upplication.s3fs.util.PutRequestUtils;
 import com.upplication.s3fs.util.S3Utils;
 
 import java.io.ByteArrayInputStream;
@@ -344,27 +345,29 @@ public class S3FileSystemProvider extends FileSystemProvider {
     }
 
     /**
-     * Deviations from spec: Does not perform atomic check-and-create. Since a
-     * directory is just an S3 object, all directories in the hierarchy are
-     * created or it already existed.
-     */
-    @Override
-    public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
-        S3Path s3Path = toS3Path(dir);
-        Preconditions.checkArgument(attrs.length == 0, "attrs not yet supported: %s", ImmutableList.copyOf(attrs)); // TODO
-        if (exists(s3Path))
-            throw new FileAlreadyExistsException(format("target already exists: %s", s3Path));
-        // create bucket if necesary
-        Bucket bucket = s3Path.getFileStore().getBucket();
-        String bucketName = s3Path.getFileStore().name();
-        if (bucket == null) {
-            s3Path.getFileSystem().getClient().createBucket(bucketName);
-        }
-        // create the object as directory
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(0);
-        s3Path.getFileSystem().getClient().putObject(bucketName, s3Path.getKey() + "/", new ByteArrayInputStream(new byte[0]), metadata);
-    }
+ 	 * Deviations from spec: Does not perform atomic check-and-create. Since a
+ 	 * directory is just an S3 object, all directories in the hierarchy are
+ 	 * created or it already existed.
+ 	 */
+ 	@Override
+ 	public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
+ 		S3Path s3Path = toS3Path(dir);
+ 		Preconditions.checkArgument(attrs.length == 0, "attrs not yet supported: %s", ImmutableList.copyOf(attrs)); // TODO
+ 		if (exists(s3Path))
+ 			throw new FileAlreadyExistsException(format("target already exists: %s", s3Path));
+ 		// create bucket if necesary
+ 		Bucket bucket = s3Path.getFileStore().getBucket();
+ 		String bucketName = s3Path.getFileStore().name();
+ 		if (bucket == null) {
+ 			s3Path.getFileSystem().getClient().createBucket(bucketName);
+ 		}
+ 		// create the object as directory
+ 		ObjectMetadata metadata = new ObjectMetadata();
+ 		metadata.setContentLength(0);
+ 
+ 		PutRequestUtils.putObjectRequestForPath(s3Path, "/", new ByteArrayInputStream(new byte[0]), metadata);
+ 
+	}
 
     @Override
     public void delete(Path path) throws IOException {
@@ -533,15 +536,30 @@ public class S3FileSystemProvider extends FileSystemProvider {
     // ~~
 
     /**
-     * Create the fileSystem
-     *
-     * @param uri   URI
-     * @param props Properties
-     * @return S3FileSystem never null
-     */
-    public S3FileSystem createFileSystem(URI uri, Properties props) {
-        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost());
-    }
+ 	 * Create the fileSystem
+ 	 *
+ 	 * @param uri
+ 	 *            URI
+ 	 * @param props
+ 	 *            Properties
+ 	 * @return S3FileSystem never null
+ 	 */
+ 	public S3FileSystem createFileSystem(URI uri, Properties props) {
+ 		return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost(), requireSseEncrypt(props), getArnKey(props));
+ 	}
+ 
+ 	/**
+ 	 * 
+ 	 * @param props
+ 	 * @return the arn used to encrypt the files, null if not specified
+ 	 */
+ 	protected String getArnKey(Properties props) {
+ 		return props.getProperty(ENCRYPT_ARN);
+ 	}
+ 
+ 	protected boolean requireSseEncrypt(Properties props) {
+ 		return Boolean.parseBoolean(props.getProperty(REQUIRE_SSE_ENCRYPT, "false"));
+	}
 
     protected AmazonS3 getAmazonS3(URI uri, Properties props) {
         return getAmazonS3Factory(props).getAmazonS3(uri, props);

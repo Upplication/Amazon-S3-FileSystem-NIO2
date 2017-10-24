@@ -16,6 +16,7 @@ import org.apache.tika.Tika;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.upplication.s3fs.util.PutRequestUtils;
 
 public class S3SeekableByteChannel implements SeekableByteChannel {
 
@@ -104,10 +105,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(tempFile));
             metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
-
-            String bucket = path.getFileStore().name();
-            String key = path.getKey();
-            path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
+			PutRequestUtils.putObjectRequestForPath(path, stream, metadata);
         }
     }
 
