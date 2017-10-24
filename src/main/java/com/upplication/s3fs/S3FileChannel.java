@@ -3,6 +3,8 @@ package com.upplication.s3fs;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.IOUtils;
+import com.upplication.s3fs.util.PutRequestUtils;
+
 import org.apache.tika.Tika;
 
 import java.io.*;
@@ -160,10 +162,7 @@ public class S3FileChannel extends FileChannel {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(tempFile));
             metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
-
-            String bucket = path.getFileStore().name();
-            String key = path.getKey();
-            path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
+            PutRequestUtils.putObjectRequestForPath(path, stream, metadata);
         }
     }
 }

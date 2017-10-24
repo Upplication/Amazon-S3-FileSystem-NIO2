@@ -34,6 +34,8 @@ public abstract class AmazonS3Factory {
     public static final String SOCKET_RECEIVE_BUFFER_SIZE_HINT = "s3fs_socket_receive_buffer_size_hint";
     public static final String SOCKET_TIMEOUT = "s3fs_socket_timeout";
     public static final String USER_AGENT = "s3fs_user_agent";
+    public static final String REQUIRE_SSE_ENCRYPT = "s3fs_require_encrypt";
+    public static final String ENCRYPT_ARN = "s3fs_encrypt_arn";
 
     /**
      * Build a new Amazon S3 instance with the URI and the properties provided
