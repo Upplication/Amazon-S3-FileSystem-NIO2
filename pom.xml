@@ -1,129 +1,129 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.upplication</groupId>
-	<artifactId>s3fs</artifactId>
-	<packaging>jar</packaging>
-	<version>1.5.4</version>
-	<name>s3fs</name>
-	<description>S3 filesystem provider for Java 7</description>
-	<url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
-	<licenses>
-		<license>
-			<name>The Apache Software License, Version 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
-	<developers>
-		<developer>
-			<id>heikkipora</id>
-			<name>Heikki Pora</name>
-			<email>heikki.pora@gmail.com</email>
-		</developer>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.upplication</groupId>
+    <artifactId>s3fs</artifactId>
+    <packaging>jar</packaging>
+    <version>1.5.4</version>
+    <name>s3fs</name>
+    <description>S3 filesystem provider for Java 7</description>
+    <url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>heikkipora</id>
+            <name>Heikki Pora</name>
+            <email>heikki.pora@gmail.com</email>
+        </developer>
         <developer>
             <id>pditommaso</id>
             <name>Paolo Di Tommaso</name>
             <email>paolo.ditommaso@gmail.com</email>
         </developer>
-		<developer>
-			<id>sbeimin</id>
-			<name>Syte Beimin</name>
+        <developer>
+            <id>sbeimin</id>
+            <name>Syte Beimin</name>
             <email>syte.beimin@gmail.com</email>
-		</developer>
-		<developer>
-			<id>jarnaiz</id>
-			<name>Javier Arnáiz</name>
+        </developer>
+        <developer>
+            <id>jarnaiz</id>
+            <name>Javier Arnáiz</name>
             <email>arnaix@gmail.com</email>
-		</developer>
-		<developer>
-			<id>martint</id>
-			<name>Martin Traverso</name>
-		</developer>
-	</developers>
+        </developer>
+        <developer>
+            <id>martint</id>
+            <name>Martin Traverso</name>
+        </developer>
+    </developers>
 
-	<scm>
-		<connection>scm:git:git://github.com/Upplication/Amazon-S3-FileSystem-NIO2.git</connection>
-		<developerConnection>scm:git:git@github.com:upplication/Amazon-S3-FileSystem-NIO2.git</developerConnection>
-		<url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
-	</scm>
+    <scm>
+        <connection>scm:git:git://github.com/Upplication/Amazon-S3-FileSystem-NIO2.git</connection>
+        <developerConnection>scm:git:git@github.com:upplication/Amazon-S3-FileSystem-NIO2.git</developerConnection>
+        <url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
+    </scm>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.surfire.plugin.version>2.7.1</maven.surfire.plugin.version>
-		<slf4j.version>1.7.5</slf4j.version>
-		<com.amazonaws.aws-java-sdk-s3.version>1.11.125</com.amazonaws.aws-java-sdk-s3.version>
+        <slf4j.version>1.7.5</slf4j.version>
+        <com.amazonaws.aws-java-sdk-s3.version>1.11.125</com.amazonaws.aws-java-sdk-s3.version>
         <com.google.guava.guava.version>18.0</com.google.guava.guava.version>
         <org.apache.tika.tika-core.version>1.5</org.apache.tika.tika-core.version>
         <com.google.code.findbugs.jsr305.version>1.3.9</com.google.code.findbugs.jsr305.version>
-	</properties>
+    </properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>${com.amazonaws.aws-java-sdk-s3.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>${com.google.guava.guava.version}</version>
-		</dependency>
+    <dependencies>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${com.amazonaws.aws-java-sdk-s3.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${com.google.guava.guava.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
             <version>${org.apache.tika.tika-core.version}</version>
         </dependency>
         <dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jcl-over-slf4j</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.code.findbugs</groupId>
-			<artifactId>jsr305</artifactId>
-			<version>${com.google.code.findbugs.jsr305.version}</version>
-		</dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${com.google.code.findbugs.jsr305.version}</version>
+        </dependency>
 
-		<!-- for testing -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.11</version>
-			<scope>test</scope>
-		</dependency>
+        <!-- for testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${slf4j.version}</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>com.github.marschall</groupId>
-			<artifactId>zipfilesystem-standalone</artifactId>
-			<version>1.0.1</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>com.github.marschall</groupId>
+            <artifactId>zipfilesystem-standalone</artifactId>
+            <version>1.0.1</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.github.marschall</groupId>
@@ -133,72 +133,72 @@
         </dependency>
 
 
-		<!-- needs extra dependencies: objenesis & hamcrest -->
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>1.9.5</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+        <!-- needs extra dependencies: objenesis & hamcrest -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.9.5</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.1</version>
-				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
-					<encoding>UTF-8</encoding>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surfire.plugin.version}</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.1.2</version>
-				<configuration>
-					<attach>true</attach>
-				</configuration>
-				<executions>
-					<execution>
-						<id>create-source-jar</id>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.1.2</version>
+                <configuration>
+                    <attach>true</attach>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>create-source-jar</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<version>2.2.1</version>
-				<configuration>
-					<mavenExecutorId>forked-path</mavenExecutorId>
-					<pushChanges>false</pushChanges>
-					<localCheckout>true</localCheckout>
-					<tagNameFormat>@{project.version}</tagNameFormat>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-eclipse-plugin</artifactId>
-				<version>2.9</version>
-				<configuration>
-					<downloadSources>true</downloadSources>
-					<downloadJavadocs>false</downloadJavadocs>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-	<profiles>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.2.1</version>
+                <configuration>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <pushChanges>false</pushChanges>
+                    <localCheckout>true</localCheckout>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <version>2.9</version>
+                <configuration>
+                    <downloadSources>true</downloadSources>
+                    <downloadJavadocs>false</downloadJavadocs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
         <profile>
             <id>integration-tests</id>
             <activation>
@@ -208,80 +208,80 @@
                 </property>
             </activation>
             <build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<configuration>
-							<argLine>${jacoco.agent.arg}</argLine>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<version>2.7.1</version>
-						<configuration>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<argLine>${jacoco.agent.arg}</argLine>
-						</configuration>
-						<executions>
-							<execution>
-								<id>integration-test</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>integration-test</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>verify</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>${jacoco.agent.arg}</argLine>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>2.7.1</version>
+                        <configuration>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <argLine>${jacoco.agent.arg}</argLine>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>integration-test</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
 
-					<plugin>
-						<groupId>org.eluder.coveralls</groupId>
-						<artifactId>coveralls-maven-plugin</artifactId>
-						<version>4.1.0</version>
-					</plugin>
+                    <plugin>
+                        <groupId>org.eluder.coveralls</groupId>
+                        <artifactId>coveralls-maven-plugin</artifactId>
+                        <version>4.1.0</version>
+                    </plugin>
 
-					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.7.6.201602180812</version>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.7.6.201602180812</version>
 
-						<executions>
-							<!-- Prepare execution with Surefire -->
-							<execution>
-								<id>pre-unit-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-								<configuration>
-									<propertyName>jacoco.agent.arg</propertyName>
-									<append>true</append>
-								</configuration>
-							</execution>
-							<!-- Generate report after tests are run -->
-							<execution>
-								<id>post-unit-test</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
+                        <executions>
+                            <!-- Prepare execution with Surefire -->
+                            <execution>
+                                <id>pre-unit-test</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                                <configuration>
+                                    <propertyName>jacoco.agent.arg</propertyName>
+                                    <append>true</append>
+                                </configuration>
+                            </execution>
+                            <!-- Generate report after tests are run -->
+                            <execution>
+                                <id>post-unit-test</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
-		<profile>
-			<id>release-sign-artifacts</id>
+        <profile>
+            <id>release-sign-artifacts</id>
 
             <distributionManagement>
                 <snapshotRepository>
@@ -294,8 +294,8 @@
                 </repository>
             </distributionManagement>
 
-			<build>
-				<plugins>
+            <build>
+                <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
@@ -309,23 +309,23 @@
                             </execution>
                         </executions>
                     </plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.1</version>
-						<executions>
-							<execution>
-								<id>sign-artifacts</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-								<configuration>
-									<useAgent>true</useAgent>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <useAgent>true</useAgent>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
 
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
@@ -338,9 +338,9 @@
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
                         </configuration>
                     </plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
