@@ -2,10 +2,7 @@ package com.upplication.s3fs;
 
 import static com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY;
 import static com.upplication.s3fs.AmazonS3Factory.SECRET_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 
 import java.io.IOException;
@@ -40,7 +37,7 @@ public class S3FileStoreTest extends S3UnitTestBase {
         AmazonS3ClientMock client = AmazonS3MockFactory.getAmazonClientMock();
         client.bucket("bucket").file("placeholder");
         client.bucket("bucket2").file("placeholder");
-        S3Path path = fileSystem.getPath("/bucket");
+        S3Path path = fileSystem.getPath("/bucket/");
         fileStore = path.getFileStore();
     }
 
@@ -91,8 +88,9 @@ public class S3FileStoreTest extends S3UnitTestBase {
     @Test
     public void getRootDirectory() {
         S3Path rootDirectory = fileStore.getRootDirectory();
-        assertEquals("bucket", rootDirectory.getFileName().toString());
-        assertEquals("/bucket/", rootDirectory.toAbsolutePath().toString());
+        assertNull("", rootDirectory.getFileName());
+        assertTrue(rootDirectory.isAbsolute());
+        assertEquals("s3://access-mocked@s3.test.amazonaws.com/bucket/", rootDirectory.toAbsolutePath().toString());
         assertEquals("s3://access-mocked@s3.test.amazonaws.com/bucket/", rootDirectory.toUri().toString());
     }
 

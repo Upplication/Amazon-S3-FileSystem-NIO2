@@ -39,7 +39,7 @@ public class S3Iterator implements Iterator<Path> {
     }
 
     public S3Iterator(S3Path path, boolean incremental) {
-        this(path.getFileStore(), path.getKey().length() == 0 ? "" : (path.getKey() + (incremental ? "" : "/")), incremental);
+        this(path.getFileStore(), path.getKey() + (!incremental && !path.getKey().isEmpty() && !path.getKey().endsWith("/") ? "/" : ""), incremental);
     }
 
     public S3Iterator(S3FileStore fileStore, String key, boolean incremental) {
@@ -89,7 +89,7 @@ public class S3Iterator implements Iterator<Path> {
             final String objectSummaryKey = objectSummary.getKey();
             String[] keyParts = fileSystem.key2Parts(objectSummaryKey);
             addParentPaths(keyParts);
-            S3Path path = new S3Path(fileSystem, fileStore, keyParts);
+            S3Path path = new S3Path(fileSystem, "/" + fileStore.name(), keyParts);
             if (!items.contains(path)) {
                 items.add(path);
             }
@@ -102,7 +102,7 @@ public class S3Iterator implements Iterator<Path> {
         String[] subParts = Arrays.copyOf(keyParts, keyParts.length - 1);
         List<S3Path> parentPaths = new ArrayList<>();
         while (subParts.length > 0) {
-            S3Path path = new S3Path(fileSystem, fileStore, subParts);
+            S3Path path = new S3Path(fileSystem,  "/" + fileStore.name(), subParts);
             String prefix = current.getPrefix();
 
             String parentKey = path.getKey();
@@ -131,7 +131,7 @@ public class S3Iterator implements Iterator<Path> {
     private void parseObjectListing(String key, List<S3Path> listPath, ObjectListing current) {
         for (String commonPrefix : current.getCommonPrefixes()) {
             if (!commonPrefix.equals("/")) {
-                listPath.add(new S3Path(fileSystem, fileStore, fileSystem.key2Parts(commonPrefix)));
+                listPath.add(new S3Path(fileSystem,  "/" + fileStore.name(), fileSystem.key2Parts(commonPrefix)));
             }
         }
         // TODO: figure our a way to efficiently preprocess commonPrefix basicFileAttributes
@@ -140,7 +140,7 @@ public class S3Iterator implements Iterator<Path> {
             // we only want the first level
             String immediateDescendantKey = getImmediateDescendant(key, objectSummaryKey);
             if (immediateDescendantKey != null) {
-                S3Path descendentPart = new S3Path(fileSystem, fileStore, fileSystem.key2Parts(immediateDescendantKey));
+                S3Path descendentPart = new S3Path(fileSystem,  "/" + fileStore.name(), fileSystem.key2Parts(immediateDescendantKey));
                 descendentPart.setFileAttributes(s3Utils.toS3FileAttributes(objectSummary, descendentPart.getKey()));
                 if (!listPath.contains(descendentPart)) {
                     listPath.add(descendentPart);

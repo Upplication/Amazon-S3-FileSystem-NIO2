@@ -9,12 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.util.List;
 import java.util.Set;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -137,12 +135,6 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
             split[i++] = part;
         }
         return split;
-    }
-
-    public String parts2Key(List<String> parts) {
-        if (parts.isEmpty())
-            return "";
-        return Joiner.on(PATH_SEPARATOR).join(ImmutableList.copyOf(parts));
     }
 
     @Override

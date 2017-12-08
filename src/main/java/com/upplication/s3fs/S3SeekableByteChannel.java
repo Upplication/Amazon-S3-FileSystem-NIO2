@@ -103,7 +103,9 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
         try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(tempFile));
-            metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
+            if (path.getFileName() != null) {
+                metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
+            }
 
             String bucket = path.getFileStore().name();
             String key = path.getKey();

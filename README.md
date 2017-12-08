@@ -1,19 +1,3 @@
-### What is new
-* Implemented S3FileChannel and adopted few places so that the FileSystem can be plugged in Apache Mina SFTP
-* Upgraded AWS SDK to 1.11.125
-* Added propagation of all passed in env's
-
-### How to use in Apache MINA
-```ruby
-public FileSystemFactory createFileSystemFactory(String bucketName) throws IOException, URISyntaxException {
-    FileSystem fileSystem = FileSystems.newFileSystem(new URI("s3:///"), env, Thread.currentThread().getContextClassLoader());
-    String bucketPath = fileSystem.getPath("/" + bucketName);
-
-    return new VirtualFileSystemFactory(bucketPath);
-}
-```
---
-
 An **Amazon AWS S3** FileSystem Provider **JSR-203** for Java 7 (NIO2)
 
 Amazon Simple Storage Service provides a fully redundant data storage infrastructure for storing and retrieving any amount of data, at any time.
@@ -22,27 +6,27 @@ This project provides a first API implementation, little optimized, but "complet
 
 [![Build Status](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2.svg?branch=master)](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2/builds) [![Coverage Status](https://coveralls.io/repos/Upplication/Amazon-S3-FileSystem-NIO2/badge.png?branch=master)](https://coveralls.io/r/Upplication/Amazon-S3-FileSystem-NIO2?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs)
 
-## How to use
+#### How to use
 
-### Download from Maven Central
+##### Download from Maven Central
 
 ```XML
 <dependency>
 	<groupId>com.upplication</groupId>
 	<artifactId>s3fs</artifactId>
-	<version>1.5.4</version>
+	<version>2.0.0</version>
 </dependency>
 ```
 
 
 And add to your META-INF/services/java.nio.file.spi.FileSystemProvider (create if not exists yet) a new line like this: com.upplication.s3fs.S3FileSystemProvider.
 
-### S3FileSystem and AmazonS3 settings
+##### S3FileSystem and AmazonS3 settings
 
 All settings for S3FileSystem and for the underlying AmazonS3 connector library can be set through System properties or environment variables.
 Possible settings can be found in com.upplication.s3fs.AmazonS3Factory.
 
-### Using service locator and system vars
+#### Using service locator and system vars
 
 Check that s3fs_access_key and s3fs_secret_key system vars are present with the correct values to have full access to your amazon s3 bucket.
 
@@ -52,11 +36,11 @@ Use this code to create the fileSystem and set to a concrete endpoint.
 FileSystems.newFileSystem("s3:///", new HashMap<String,Object>(), Thread.currentThread().getContextClassLoader());
 ```
 
-### Using service locator and amazon.properties in the classpath
+##### Using service locator and amazon.properties in the classpath
 
 Add to your resources folder the file amazon.properties with the content:
-s3fs_access_key=access key
-s3fs_secret_key=secret key
+s3fs_access_key=access-key
+s3fs_secret_key=secret-key
 
 Use this code to create the fileSystem and set to a concrete endpoint.
 
@@ -64,7 +48,7 @@ Use this code to create the fileSystem and set to a concrete endpoint.
 FileSystems.newFileSystem("s3:///", new HashMap<String,Object>(), Thread.currentThread().getContextClassLoader());
 ```
 
-### Using service locator and programatically authentication
+##### Using service locator and programatically authentication
 
 Create a map with the authentication and use the fileSystem to create the fileSystem and set to a concrete endpoint.
 
@@ -96,7 +80,7 @@ Complete settings lists:
 * s3fs_user_agent
 * s3fs_amazon_s3_factory
 
-### Set endpoint to reduce data latency in your applications
+##### Set endpoint to reduce data latency in your applications
 
 ```java
 // Northern Virginia or Pacific Northwest
@@ -113,7 +97,59 @@ FileSystems.newFileSystem("s3://s3-eu-west-1.amazonaws.com/", env, Thread.curren
 
 For a complete list of available regions look at: http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
 
-## Features:
+##### How to use in Apache MINA
+
+```java
+public FileSystemFactory createFileSystemFactory(String bucketName) throws IOException, URISyntaxException {
+    FileSystem fileSystem = FileSystems.newFileSystem(new URI("s3:///"), env, Thread.currentThread().getContextClassLoader());
+    String bucketPath = fileSystem.getPath("/" + bucketName);
+
+    return new VirtualFileSystemFactory(bucketPath);
+}
+```
+
+##### How to use in Spring
+
+Add to classpath and configure:
+
+```java
+@Configuration
+public class AwsConfig {
+
+    @Value("${upplication.aws.accessKey}")
+    private String accessKey;
+
+    @Value("${upplication.aws.secretKey}")
+    private String secretKey;
+
+    @Bean
+    public FileSystem s3FileSystem() throws IOException {
+        Map<String, String> env = new HashMap<>();
+        env.put(com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY, accessKey);
+        env.put(com.upplication.s3fs.AmazonS3Factory.SECRET_KEY, secretKey);
+
+        return FileSystems.newFileSystem(URI.create("s3:///"), env, Thread.currentThread().getContextClassLoader());
+    }
+}
+```
+
+Now you can inject in any spring component:
+
+```java
+@Autowired
+private FileSystem s3FileSystem;
+
+```
+
+##### What is new 2.0.0
+
+* Preserve URI with end slash #76
+* Removed META-INF/services/java.nio.file.spi.FileTypeDetector #78
+* Bucket are filestores and root directories for a bucket is the bucket itself.
+* getFileName for a root Path is ```null```
+* Improved S3Path Tests
+
+#### Features:
 
 * Copy and create folders and files
 * Delete folders and files
@@ -123,16 +159,16 @@ For a complete list of available regions look at: http://docs.aws.amazon.com/gen
 * List buckets for the client
 * Multi endpoint fileSystem
 
-## Roadmap:
+#### Roadmap:
 
 * Performance issue (slow querys with virtual folders, add multipart submit...)
 * Disallow upload binary files with same name as folders and vice versa
 
-## Out of Roadmap:
+#### Out of Roadmap:
 
 * Watchers
 
-## How to contribute
+#### How to contribute
 
 Clone the github repository:
 
@@ -153,6 +189,6 @@ s3fs_access_key=your access key for test
 
 Thats all, now you can run the test with the command: `mvn test` or `mvn integration-test -Pintegration-tests`
 
-## LICENSE:
+#### LICENSE:
 
 Amazon S3 FileSystem NIO2 is released under the MIT License.

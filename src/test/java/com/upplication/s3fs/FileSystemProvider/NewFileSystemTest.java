@@ -23,6 +23,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,10 +42,9 @@ public class NewFileSystemTest extends S3UnitTestBase {
     private S3FileSystemProvider s3fsProvider;
 
     @Before
-    public void setup() {
-        s3fsProvider = spy(new S3FileSystemProvider());
-        doReturn(false).when(s3fsProvider).overloadPropertiesWithSystemEnv(any(Properties.class), anyString());
-        doReturn(new Properties()).when(s3fsProvider).loadAmazonProperties();
+    public void setup() throws IOException {
+        s3fsProvider = getS3fsProvider();
+        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
     }
 
     @Test(expected = S3FileSystemConfigurationException.class)
@@ -81,38 +81,39 @@ public class NewFileSystemTest extends S3UnitTestBase {
 	@Test
     public void createsAuthenticatedByEnv() {
         Map<String, ?> env = buildFakeEnv();
-        FileSystem fileSystem = s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, env);
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+        FileSystem fileSystem = s3fsProvider.newFileSystem(uri, env);
         assertNotNull(fileSystem);
-        verify(s3fsProvider).createFileSystem(eq(S3EndpointConstant.S3_GLOBAL_URI_TEST), eq(buildFakeProps((String) env.get(ACCESS_KEY), (String) env.get(SECRET_KEY))));
+        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps((String) env.get(ACCESS_KEY), (String) env.get(SECRET_KEY))));
     }
 
     @Test
     public void setEncodingByProperties() {
         Properties props = new Properties();
-        props.setProperty(SECRET_KEY, "better secret key");
-        props.setProperty(ACCESS_KEY, "better access key");
+        props.setProperty(SECRET_KEY, "better_secret_key");
+        props.setProperty(ACCESS_KEY, "better_access_key");
         props.setProperty(CHARSET_KEY, "UTF-8");
         doReturn(props).when(s3fsProvider).loadAmazonProperties();
-        URI uri = S3EndpointConstant.S3_GLOBAL_URI_TEST;
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
 
         FileSystem fileSystem = s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
 
-        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better access key", "better secret key", "UTF-8")));
+        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better_access_key", "better_secret_key", "UTF-8")));
     }
 
     @Test
     public void createAuthenticatedByProperties() {
         Properties props = new Properties();
-        props.setProperty(SECRET_KEY, "better secret key");
-        props.setProperty(ACCESS_KEY, "better access key");
+        props.setProperty(SECRET_KEY, "better_secret_key");
+        props.setProperty(ACCESS_KEY, "better_access_key");
         doReturn(props).when(s3fsProvider).loadAmazonProperties();
-        URI uri = S3EndpointConstant.S3_GLOBAL_URI_TEST;
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
 
         FileSystem fileSystem = s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
 
-        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better access key", "better secret key")));
+        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better_access_key", "better_secret_key")));
     }
 
     @Test
@@ -120,14 +121,15 @@ public class NewFileSystemTest extends S3UnitTestBase {
 
         final String accessKey = "better-access-key";
         final String secretKey = "better-secret-key";
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
 
         doReturn(accessKey).when(s3fsProvider).systemGetEnv(ACCESS_KEY);
         doReturn(secretKey).when(s3fsProvider).systemGetEnv(SECRET_KEY);
         doCallRealMethod().when(s3fsProvider).overloadPropertiesWithSystemEnv(any(Properties.class), anyString());
 
-        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+        s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
 
-        verify(s3fsProvider).createFileSystem(eq(S3EndpointConstant.S3_GLOBAL_URI_TEST), argThat(new ArgumentMatcher<Properties>() {
+        verify(s3fsProvider).createFileSystem(eq(uri), argThat(new ArgumentMatcher<Properties>() {
             @Override
             public boolean matches(Object argument) {
                 Properties called = (Properties) argument;
@@ -140,7 +142,7 @@ public class NewFileSystemTest extends S3UnitTestBase {
 
     @Test
     public void createsAnonymous() {
-        URI uri = S3EndpointConstant.S3_GLOBAL_URI_TEST;
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
         FileSystem fileSystem = s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
         verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps(null, null)));
@@ -149,8 +151,8 @@ public class NewFileSystemTest extends S3UnitTestBase {
     @Test
     public void createWithDefaultEndpoint() {
         Properties props = new Properties();
-        props.setProperty(SECRET_KEY, "better secret key");
-        props.setProperty(ACCESS_KEY, "better access key");
+        props.setProperty(SECRET_KEY, "better_secret_key");
+        props.setProperty(ACCESS_KEY, "better_access_key");
         props.setProperty(CHARSET_KEY, "UTF-8");
         doReturn(props).when(s3fsProvider).loadAmazonProperties();
         URI uri = URI.create("s3:///");
@@ -158,47 +160,61 @@ public class NewFileSystemTest extends S3UnitTestBase {
         FileSystem fileSystem = s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
 
-        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better access key", "better secret key", "UTF-8")));
+        verify(s3fsProvider).createFileSystem(eq(uri), eq(buildFakeProps("better_access_key", "better_secret_key", "UTF-8")));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void createWithOnlyAccessKey() {
         Properties props = new Properties();
-        props.setProperty(ACCESS_KEY, "better access key");
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+
+        props.setProperty(ACCESS_KEY, "better_access_key");
         doReturn(props).when(s3fsProvider).loadAmazonProperties();
-        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+
+        s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void createWithOnlySecretKey() {
         Properties props = new Properties();
-        props.setProperty(SECRET_KEY, "better secret key");
+        props.setProperty(SECRET_KEY, "better_secret_key");
         doReturn(props).when(s3fsProvider).loadAmazonProperties();
-        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+
+        s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
     }
 
     @Test(expected = FileSystemAlreadyExistsException.class)
     public void createFailsIfAlreadyCreated() {
         FileSystem fileSystem = s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
-        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+
+        s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void createWithWrongEnv() {
         Map<String, Object> env = ImmutableMap.<String, Object>builder().put(ACCESS_KEY, 1234).put(SECRET_KEY, "secret key").build();
-        FileSystem fileSystem = s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, env);
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+
+        FileSystem fileSystem = s3fsProvider.newFileSystem(uri, env);
         assertNotNull(fileSystem);
-        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+
+        s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
     }
 
     @Test
     public void getFileSystem() {
-        FileSystem fileSystem = s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+        URI uri = URI.create("s3://" + UUID.randomUUID().toString());
+
+        FileSystem fileSystem = s3fsProvider.newFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
-        fileSystem = s3fsProvider.getFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, ImmutableMap.<String, Object>of());
+
+        fileSystem = s3fsProvider.getFileSystem(uri, ImmutableMap.<String, Object>of());
         assertNotNull(fileSystem);
-        FileSystem other = s3fsProvider.getFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST);
+
+        FileSystem other = s3fsProvider.getFileSystem(uri);
         assertSame(fileSystem, other);
     }
 
@@ -230,7 +246,7 @@ public class NewFileSystemTest extends S3UnitTestBase {
 
 
     private Map<String, ?> buildFakeEnv() {
-        return ImmutableMap.<String, Object>builder().put(ACCESS_KEY, "access key").put(SECRET_KEY, "secret key").build();
+        return ImmutableMap.<String, Object>builder().put(ACCESS_KEY, "access_key").put(SECRET_KEY, "secret_key").build();
     }
 
     private Properties buildFakeProps(String access_key, String secret_key, String encoding) {

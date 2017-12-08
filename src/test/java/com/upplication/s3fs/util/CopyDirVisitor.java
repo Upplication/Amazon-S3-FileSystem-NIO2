@@ -28,11 +28,11 @@ public class CopyDirVisitor extends SimpleFileVisitor<Path> {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
 
-        // permitimos resolver entre distintos providers
+        // we allow to work against different providers
         Path targetPath = appendPath(dir);
 
         if (!Files.exists(targetPath)) {
-            if (!targetPath.getFileName().toString().endsWith("/")) {
+            if (!targetPath.toString().endsWith("/")) {
                 targetPath = targetPath.getParent().resolve(targetPath.getFileName().toString() + "/");
             }
             Files.createDirectory(targetPath);

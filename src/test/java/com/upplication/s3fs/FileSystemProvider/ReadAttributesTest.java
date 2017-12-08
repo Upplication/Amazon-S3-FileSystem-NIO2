@@ -21,10 +21,9 @@ public class ReadAttributesTest extends S3UnitTestBase {
     private S3FileSystemProvider s3fsProvider;
 
     @Before
-    public void setup() {
-        s3fsProvider = spy(new S3FileSystemProvider());
-        doReturn(false).when(s3fsProvider).overloadPropertiesWithSystemEnv(any(Properties.class), anyString());
-        doReturn(new Properties()).when(s3fsProvider).loadAmazonProperties();
+    public void setup() throws IOException {
+        s3fsProvider = getS3fsProvider();
+        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
     }
 
 

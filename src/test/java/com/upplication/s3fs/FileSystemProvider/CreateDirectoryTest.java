@@ -12,22 +12,17 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.Properties;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
 
 public class CreateDirectoryTest extends S3UnitTestBase {
 
     private S3FileSystemProvider s3fsProvider;
 
     @Before
-    public void setup() {
-        s3fsProvider = spy(new S3FileSystemProvider());
-        doReturn(false).when(s3fsProvider).overloadPropertiesWithSystemEnv(any(Properties.class), anyString());
-        doReturn(new Properties()).when(s3fsProvider).loadAmazonProperties();
+    public void setup() throws IOException {
+        s3fsProvider = getS3fsProvider();
+        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
     }
 
     @Test
@@ -51,7 +46,8 @@ public class CreateDirectoryTest extends S3UnitTestBase {
         S3Path root = createNewS3FileSystem().getPath("/newer-bucket");
         Path resolve = root.resolve("folder");
         Path path = Files.createDirectories(resolve);
-        assertEquals("/newer-bucket/folder", path.toAbsolutePath().toString());
+
+        assertEquals("s3://s3.test.amazonaws.com/newer-bucket/folder", path.toAbsolutePath().toString());
         // assert
         assertTrue(Files.exists(root));
         assertTrue(Files.isDirectory(root));
@@ -89,8 +85,7 @@ public class CreateDirectoryTest extends S3UnitTestBase {
         try {
             return s3fsProvider.getFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST);
         } catch (FileSystemNotFoundException e) {
-            return (S3FileSystem) FileSystems.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
+            return (S3FileSystem) s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
         }
-
     }
 }

@@ -193,10 +193,10 @@ public class FilesIT {
     @Test
     public void virtualDirectoryStreamTest() throws IOException {
 
-        String folder = UUID.randomUUID().toString();
+        String folder = UUID.randomUUID().toString() + "/";
 
-        String file1 = folder + "/file.html";
-        String file2 = folder + "/file2.html";
+        String file1 = folder + "file.html";
+        String file2 = folder + "file2.html";
 
         Path dir = fileSystemAmazon.getPath(bucket, folder);
 
@@ -238,10 +238,10 @@ public class FilesIT {
 
     @Test
     public void virtualDirectoryStreamWithVirtualSubFolderTest() throws IOException {
-        String folder = UUID.randomUUID().toString();
+        String folder = UUID.randomUUID().toString() + "/";
 
-        String subfoler = folder + "/subfolder/file.html";
-        String file2 = folder + "/file2.html";
+        String subfoler = folder + "subfolder/file.html";
+        String file2 = folder + "file2.html";
 
         Path dir = fileSystemAmazon.getPath(bucket, folder);
 
@@ -261,7 +261,7 @@ public class FilesIT {
             boolean file2Find = false;
             for (Path path : dirStream) {
                 number++;
-                // solo recorre ficheros del primer nivel
+                // only the first level one
                 assertEquals(dir, path.getParent());
                 switch (path.getFileName().toString()) {
                     case "subfolder":
@@ -494,7 +494,7 @@ public class FilesIT {
 
     @Test
     public void bucketIsDirectory() throws IOException {
-        Path path = fileSystemAmazon.getPath(bucket, "/");
+        Path path = fileSystemAmazon.getPath(bucket);
         BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
         assertEquals(0, attrs.size());
         assertEquals(null, attrs.creationTime());

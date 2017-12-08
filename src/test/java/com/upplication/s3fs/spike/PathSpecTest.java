@@ -6,9 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,15 +17,18 @@ import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
 public class PathSpecTest {
 
     FileSystem fs;
+    FileSystem fsWindows;
 
     @Before
     public void setup() throws IOException {
         fs = MemoryFileSystemBuilder.newLinux().build("linux");
+        fsWindows = MemoryFileSystemBuilder.newWindows().build("windows");
     }
 
     @After
     public void close() throws IOException {
         fs.close();
+        fsWindows.close();
     }
 
     // first and more
@@ -150,6 +151,16 @@ public class PathSpecTest {
         assertFalse(get("file1").endsWith(get("")));
     }
 
+    @Test
+    public void getParentNull() {
+        assertNull(get("/").getParent());
+    }
+
+    @Test
+    public void getParentWindowsNull() {
+        assertNull(fsWindows.getPath("C://").getParent());
+    }
+
     // file name
 
     @Test
@@ -160,6 +171,63 @@ public class PathSpecTest {
 
             assertEquals(windows.getPath("file"), fileName);
             assertNull(rootName);
+        }
+    }
+
+
+    @Test
+    public void getFileNameRootIsNull() throws IOException {
+        Path fileNameRoot = fs.getRootDirectories().iterator().next().getFileName();
+        assertNull(fileNameRoot);
+    }
+
+    // root
+
+    @Test
+    public void getRootReturnBucket() {
+        assertEquals(get("/"), get("/dir/dir/file").getRoot());
+    }
+
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void fileWithSameNameAsDir() throws IOException {
+        Files.createFile(fs.getPath("/tmp"));
+        Files.createDirectory(fs.getPath("/tmp/"));
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void dirWithSameNameAsFile() throws IOException {
+        Files.createDirectories(fs.getPath("/tmp/"));
+        Files.createFile(fs.getPath("/tmp"));
+    }
+
+    @Test
+    public void createDirWithoutEndSlash() throws IOException {
+        Path dir = Files.createDirectory(fs.getPath("/tmp"));
+        Files.isDirectory(dir);
+    }
+
+    @Test
+    public void getRootRelativeReturnNull() {
+        assertNull(get("dir/file").getRoot());
+    }
+
+    @Test
+    public void getRoot() {
+        System.out.println("Default:");
+        System.out.println("-------");
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            System.out.println("- " + root);
+        }
+        System.out.println("\nLinux:");
+        System.out.println("-----");
+        for (Path root : fs.getRootDirectories()) {
+            System.out.println("- " + root);
+        }
+        System.out.println("\nWindows:");
+        System.out.println("-------");
+        for (Path root : fsWindows.getRootDirectories()) {
+            System.out.println("- " + root);
         }
     }
 

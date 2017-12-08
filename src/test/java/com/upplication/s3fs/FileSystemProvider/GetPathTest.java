@@ -3,6 +3,7 @@ package com.upplication.s3fs.FileSystemProvider;
 import com.google.common.collect.ImmutableMap;
 import com.upplication.s3fs.S3FileSystemProvider;
 import com.upplication.s3fs.S3UnitTestBase;
+import com.upplication.s3fs.util.S3EndpointConstant;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,12 +20,10 @@ public class GetPathTest extends S3UnitTestBase {
     private S3FileSystemProvider s3fsProvider;
 
     @Before
-    public void setup() {
-        s3fsProvider = spy(new S3FileSystemProvider());
-        doReturn(false).when(s3fsProvider).overloadPropertiesWithSystemEnv(any(Properties.class), anyString());
-        doReturn(new Properties()).when(s3fsProvider).loadAmazonProperties();
+    public void setup() throws IOException {
+        s3fsProvider = getS3fsProvider();
+        s3fsProvider.newFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST, null);
     }
-
 
     @Test
     public void getPathWithEmtpyEndpoint() throws IOException {
@@ -57,12 +56,12 @@ public class GetPathTest extends S3UnitTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void getPathWithEndpointAndWithoutBucket() throws IOException {
         FileSystem fs = FileSystems.newFileSystem(URI.create("s3://endpoint1/"), null);
-        fs.provider().getPath(URI.create("s3://endpoint1//falta-bucket"));
+        fs.provider().getPath(URI.create("s3://endpoint1//missed-bucket"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getPathWithDefaultEndpointAndWithoutBucket() throws IOException {
         FileSystem fs = FileSystems.newFileSystem(URI.create("s3:///"), ImmutableMap.<String, Object>of());
-        fs.provider().getPath(URI.create("s3:////falta-bucket"));
+        fs.provider().getPath(URI.create("s3:////missed-bucket"));
     }
 }

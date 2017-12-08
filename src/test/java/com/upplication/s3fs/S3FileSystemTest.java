@@ -19,10 +19,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableMap;
 import com.upplication.s3fs.util.AmazonS3ClientMock;
 import com.upplication.s3fs.util.AmazonS3MockFactory;
@@ -147,8 +149,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     }
 
     @Test
-    public void getRootDirectoriesReturnBuckets() {
-
+    public void getRootDirectories() {
         Iterable<Path> paths = fs.getRootDirectories();
 
         assertNotNull(paths);
@@ -158,10 +159,12 @@ public class S3FileSystemTest extends S3UnitTestBase {
         boolean bucketNameB = false;
 
         for (Path path : paths) {
-            String name = path.getFileName().toString();
-            if (name.equals("bucketA")) {
+            S3Path s3Path = (S3Path)path;
+            String fileStore = s3Path.getFileStore().name();
+            Path fileName = s3Path.getFileName();
+            if (fileStore.equals("bucketA") && fileName == null) {
                 bucketNameA = true;
-            } else if (name.equals("bucketB")) {
+            } else if (fileStore.equals("bucketB") && fileName == null) {
                 bucketNameB = true;
             }
             size++;
@@ -181,11 +184,6 @@ public class S3FileSystemTest extends S3UnitTestBase {
 
         assertTrue(operations.contains("basic"));
         assertTrue(operations.contains("posix"));
-    }
-
-    @Test
-    public void getRootDirectories() {
-        fs.getRootDirectories();
     }
 
     @Test
@@ -290,13 +288,15 @@ public class S3FileSystemTest extends S3UnitTestBase {
     @Test
     public void urlWithSpecialCharacters() throws IOException {
         String fileName = "βeta.png";
-        String expected = "https://bucket.s3.amazonaws.com/%CE%B2eta.png";
+        String expected = "https://bucket.s3.eu-west-1.amazonaws.com/%CE%B2eta.png";
 
-        AmazonS3Client amazonS3Client = new AmazonS3Client();
+        AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(Regions.EU_WEST_1)
+                .build();
         S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror");
         S3Path path = new S3Path(s3FileSystem, fileName);
 
-        String url = amazonS3Client.getResourceUrl("bucket", path.getKey());
+        String url = amazonS3Client.getUrl("bucket", path.getKey()).toString();
 
         assertEquals(expected, url);
     }
@@ -304,13 +304,15 @@ public class S3FileSystemTest extends S3UnitTestBase {
     @Test
     public void urlWithSpaceCharacters() throws IOException {
         String fileName = "beta gaming.png";
-        String expected = "https://bucket.s3.amazonaws.com/beta%20gaming.png";
+        String expected = "https://bucket.s3.eu-west-1.amazonaws.com/beta%20gaming.png";
 
-        AmazonS3Client amazonS3Client = new AmazonS3Client();
+        AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(Regions.EU_WEST_1)
+                .build();
         S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror");
         S3Path path = new S3Path(s3FileSystem, fileName);
 
-        String url = amazonS3Client.getResourceUrl("bucket", path.getKey());
+        String url = amazonS3Client.getUrl("bucket", path.getKey()).toString();
 
         assertEquals(expected, url);
     }

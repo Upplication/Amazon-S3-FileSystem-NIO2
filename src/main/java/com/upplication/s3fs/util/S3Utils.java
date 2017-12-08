@@ -32,6 +32,7 @@ public class S3Utils {
         String key = s3Path.getKey();
         String bucketName = s3Path.getFileStore().name();
         AmazonS3 client = s3Path.getFileSystem().getClient();
+        // try to find the element with the current key (maybe with end slash or maybe not.)
         try {
             ObjectMetadata metadata = client.getObjectMetadata(bucketName, key);
             S3ObjectSummary result = new S3ObjectSummary();
@@ -48,11 +49,17 @@ public class S3Utils {
                 throw e;
         }
 
+        // if not found (404 err) with the original key.
+        // try to find the elment as a directory.
         try {
             // is a virtual directory
             ListObjectsRequest request = new ListObjectsRequest();
             request.setBucketName(bucketName);
-            request.setPrefix(key + "/");
+            String keyFolder = key;
+            if (!keyFolder.endsWith("/")) {
+                keyFolder += "/";
+            }
+            request.setPrefix(keyFolder);
             request.setMaxKeys(1);
             ObjectListing current = client.listObjects(request);
             if (!current.getObjectSummaries().isEmpty())

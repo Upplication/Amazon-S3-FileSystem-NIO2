@@ -54,12 +54,15 @@ public abstract class EnvironmentBuilder {
 
         String bucketName = System.getenv(BUCKET_NAME_KEY);
         if (bucketName != null) {
+            if (!bucketName.endsWith("/")) bucketName += "/";
             return bucketName;
         }
         final Properties props = new Properties();
         try {
             props.load(EnvironmentBuilder.class.getResourceAsStream("/amazon-test.properties"));
-            return props.getProperty(BUCKET_NAME_KEY);
+            bucketName =  props.getProperty(BUCKET_NAME_KEY);
+            if (bucketName != null && !bucketName.endsWith("/")) bucketName += "/";
+            return bucketName;
         } catch (IOException e) {
             throw new RuntimeException("needed /amazon-test.properties in the classpath");
         }

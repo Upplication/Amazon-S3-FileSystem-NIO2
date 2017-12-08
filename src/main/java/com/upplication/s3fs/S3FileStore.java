@@ -91,7 +91,7 @@ public class S3FileStore extends FileStore implements Comparable<S3FileStore> {
     }
 
     public S3Path getRootDirectory() {
-        return new S3Path(fileSystem, this, ImmutableList.<String>of());
+        return new S3Path(fileSystem, "/" + this.name());
     }
 
     private AmazonS3 getClient() {
