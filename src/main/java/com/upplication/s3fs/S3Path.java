@@ -465,7 +465,7 @@ public class S3Path implements Path {
             return URI.create("s3://" + normalizeURI(builder.toString()));
         }
         else {
-            return URI.create(this.uri);
+            return URI.create(uri);
         }
     }
 

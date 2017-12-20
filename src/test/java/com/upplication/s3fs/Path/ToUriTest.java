@@ -73,6 +73,15 @@ public class ToUriTest extends S3UnitTestBase {
     }
 
     @Test
+    public void toUriRelativeWithSpaces() {
+        S3FileSystem fileSystem = s3fsProvider.getFileSystem(S3_GLOBAL_URI_TEST);
+        String fileName = "file with.spaces";
+        S3Path path = new S3Path(fileSystem, fileName);
+        URI uri = path.toUri();
+        assertEquals(fileName,  uri.getPath());
+    }
+
+    @Test
     public void toUriBucketWithoutEndSlash() {
         S3Path s3Path = getPath("/bucket");
 
