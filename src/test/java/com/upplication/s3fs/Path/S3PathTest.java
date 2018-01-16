@@ -9,7 +9,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.util.HashMap;
@@ -231,5 +230,16 @@ public class S3PathTest extends S3UnitTestBase {
     public void registerWatchService() throws IOException {
         S3Path path = forPath("/buck/file");
         path.register(null, new WatchEvent.Kind<?>[0], new WatchEvent.Modifier[0]);
+    }
+
+    @Test
+    public void toUriWithSpaces() {
+        S3Path path = forPath("path/to/file with spaces");
+        assertFalse(path.isAbsolute());
+        assertEquals(path.toUri().toString (), "path/to/file%20with%20spaces");
+
+        path = forPath("/bucket/path/to/file with spaces");
+        assertTrue(path.isAbsolute());
+        assertEquals(path.toUri().toString (), S3EndpointConstant.S3_GLOBAL_URI_TEST.toString() + "bucket/path/to/file%20with%20spaces");
     }
 }
