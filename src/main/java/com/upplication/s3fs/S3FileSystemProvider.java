@@ -14,6 +14,8 @@ import com.upplication.s3fs.attribute.S3BasicFileAttributeView;
 import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 import com.upplication.s3fs.attribute.S3PosixFileAttributeView;
 import com.upplication.s3fs.attribute.S3PosixFileAttributes;
+import com.upplication.s3fs.channels.multipart.S3MultipartFileChannel;
+import com.upplication.s3fs.channels.S3SeekableByteChannel;
 import com.upplication.s3fs.util.AttributesUtils;
 import com.upplication.s3fs.util.Cache;
 import com.upplication.s3fs.util.S3Utils;
@@ -71,10 +73,12 @@ public class S3FileSystemProvider extends FileSystemProvider {
     private static final ConcurrentMap<String, S3FileSystem> fileSystems = new ConcurrentHashMap<>();
     private static final List<String> PROPS_TO_OVERLOAD = Arrays.asList(ACCESS_KEY, SECRET_KEY, REQUEST_METRIC_COLLECTOR_CLASS, CONNECTION_TIMEOUT, MAX_CONNECTIONS, MAX_ERROR_RETRY, PROTOCOL, PROXY_DOMAIN,
             PROXY_HOST, PROXY_PASSWORD, PROXY_PORT, PROXY_USERNAME, PROXY_WORKSTATION, SOCKET_SEND_BUFFER_SIZE_HINT, SOCKET_RECEIVE_BUFFER_SIZE_HINT, SOCKET_TIMEOUT,
-            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS);
+            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS, MULTIPART_PART_SIZE);
 
     private S3Utils s3Utils = new S3Utils();
     private Cache cache = new Cache();
+
+    private Properties props = new Properties();
 
     @Override
     public String getScheme() {
@@ -85,7 +89,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
     public FileSystem newFileSystem(URI uri, Map<String, ?> env) {
         validateUri(uri);
         // get properties for the env or properties or system
-        Properties props = getProperties(uri, env);
+        props = getProperties(uri, env);
         validateProperties(props);
         // try to get the filesystem by the key
         String key = getFileSystemKey(uri, props);
@@ -349,7 +353,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
     @Override
     public FileChannel newFileChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         S3Path s3Path = toS3Path(path);
-        return new S3FileChannel(s3Path, options);
+        return new S3MultipartFileChannel(s3Path, options, props);
     }
 
     /**
@@ -600,7 +604,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
      * @param path S3Path
      * @return true if exists
      */
-    boolean exists(S3Path path) {
+    public boolean exists(S3Path path) {
         S3Path s3Path = toS3Path(path);
         try {
             s3Utils.getS3ObjectSummary(s3Path);

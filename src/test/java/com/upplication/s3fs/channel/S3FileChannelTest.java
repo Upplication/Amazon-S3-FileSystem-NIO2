@@ -1,6 +1,9 @@
-package com.upplication.s3fs;
+package com.upplication.s3fs.channel;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.upplication.s3fs.S3Path;
+import com.upplication.s3fs.S3UnitTestBase;
+import com.upplication.s3fs.channels.S3FileChannel;
 import com.upplication.s3fs.util.AmazonS3ClientMock;
 import com.upplication.s3fs.util.AmazonS3MockFactory;
 import com.upplication.s3fs.util.S3EndpointConstant;

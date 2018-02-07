@@ -38,6 +38,7 @@ public abstract class AmazonS3Factory {
     public static final String USER_AGENT = "s3fs_user_agent";
     public static final String SIGNER_OVERRIDE = "s3fs_signer_override";
     public static final String PATH_STYLE_ACCESS = "s3fs_path_style_access";
+    public static final String MULTIPART_PART_SIZE = "s3fs_multipart_part_size";
 
     /**
      * Build a new Amazon S3 instance with the URI and the properties provided

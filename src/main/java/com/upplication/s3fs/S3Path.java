@@ -1,6 +1,7 @@
 package com.upplication.s3fs;
 
-import com.google.common.base.*;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.upplication.s3fs.attribute.S3BasicFileAttributes;
@@ -15,7 +16,7 @@ import java.nio.file.*;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.collect.Iterables.concat;
 import static java.lang.String.format;
 
 public class S3Path implements Path {
@@ -46,8 +47,8 @@ public class S3Path implements Path {
      * Build an S3Path from path segments. '/' are stripped from each segment.
      *
      * @param fileSystem S3FileSystem
-     * @param first should be start with a '/' and is the bucket name
-     * @param more  directories and files
+     * @param first      should be start with a '/' and is the bucket name
+     * @param more       directories and files
      */
     public S3Path(S3FileSystem fileSystem, String first, String... more) {
 
@@ -72,8 +73,7 @@ public class S3Path implements Path {
             this.fileStore = new S3FileStore(fileSystem, bucket);
             // the filestore is not part of the uri
             pathsURI.remove(0);
-        }
-        else {
+        } else {
             // relative uri
             this.fileStore = null;
         }
@@ -95,8 +95,8 @@ public class S3Path implements Path {
         if (!first.isEmpty() &&
                 // only first param and not ended with PATH_SEPARATOR
                 ((!first.endsWith(PATH_SEPARATOR) && (more == null || more.length == 0))
-                // we have more param and not ended with PATH_SEPARATOR
-                || more != null &&  more.length > 0 && !more[more.length-1].endsWith(PATH_SEPARATOR))) {
+                        // we have more param and not ended with PATH_SEPARATOR
+                        || more != null && more.length > 0 && !more[more.length - 1].endsWith(PATH_SEPARATOR))) {
             this.uri = this.uri.substring(0, this.uri.length() - 1);
         }
 
@@ -157,7 +157,7 @@ public class S3Path implements Path {
             // get FileName of root directory is null
             return null;
         }
-        String filename = paths.get(paths.size()-1);
+        String filename = paths.get(paths.size() - 1);
         return new S3Path(fileSystem, filename);
     }
 
@@ -171,7 +171,7 @@ public class S3Path implements Path {
         String newUri = this.uri;
 
         if (this.uri.endsWith("/")) {
-            newUri = this.uri.substring(0, this.uri.length()-1);
+            newUri = this.uri.substring(0, this.uri.length() - 1);
         }
         int lastPathSeparatorPosition = newUri.lastIndexOf(PATH_SEPARATOR);
 
@@ -436,12 +436,12 @@ public class S3Path implements Path {
 
     /**
      * Examples:
-     *
+     * <p>
      * Relative:
      * --------
      * NO use fileSystem and not used fileStore.
      * - path/file
-     *
+     * <p>
      * Absolute:
      * --------
      * Use the fileSystem to get the host and the filestore to get the first path (in the future the filestore can be attached to the host)
@@ -463,24 +463,23 @@ public class S3Path implements Path {
             builder.append(PATH_SEPARATOR + fileStore.name() + PATH_SEPARATOR);
             builder.append(uri);
             return URI.create("s3://" + normalizeURI(builder.toString()));
-        }
-        else {
+        } else {
             return URI.create(this.uri);
         }
     }
 
     /**
      * Get the url for the s3Path.
-     *
+     * <p>
      * The url represents a Uniform Resource
      * Locator, a pointer to a "resource" on the World
      * Wide Web.
-     *
+     * <p>
      * All S3Path has a URL if is absolute
      *
+     * @return URL or null if is not absoulte
      * @see com.amazonaws.services.s3.AmazonS3#getUrl(String, String)
      * @see S3Path#toUri() for unique resource identifier
-     * @return URL or null if is not absoulte
      */
     public URL toURL() {
         if (!this.isAbsolute())
@@ -552,7 +551,11 @@ public class S3Path implements Path {
 
     @Override
     public String toString() {
-        return toUri().toString();
+        if (this.isAbsolute()) {
+            return toUri().toString();
+        } else {
+            return this.uri;
+        }
     }
 
     @Override
@@ -579,6 +582,7 @@ public class S3Path implements Path {
 
     /**
      * Encode special URI characters for path.
+     *
      * @param uri String the uri path
      * @return String
      */
@@ -598,8 +602,7 @@ public class S3Path implements Path {
     private String decode(URI uri) {
         try {
             return URLDecoder.decode(uri.toString(), "UTF-8");
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Error decoding key: " + this.uri, e);
         }
     }

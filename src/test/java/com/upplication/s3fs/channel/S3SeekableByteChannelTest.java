@@ -1,26 +1,22 @@
-package com.upplication.s3fs;
+package com.upplication.s3fs.channel;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
-
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.EnumSet;
-
+import com.upplication.s3fs.S3Path;
+import com.upplication.s3fs.S3UnitTestBase;
+import com.upplication.s3fs.channels.S3SeekableByteChannel;
+import com.upplication.s3fs.util.AmazonS3ClientMock;
+import com.upplication.s3fs.util.AmazonS3MockFactory;
 import com.upplication.s3fs.util.S3EndpointConstant;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.upplication.s3fs.util.AmazonS3ClientMock;
-import com.upplication.s3fs.util.AmazonS3MockFactory;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.file.*;
+import java.util.EnumSet;
+
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.*;
 
 public class S3SeekableByteChannelTest extends S3UnitTestBase {
 

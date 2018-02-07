@@ -1,4 +1,4 @@
-package com.upplication.s3fs;
+package com.upplication.s3fs.channels;
 
 import static java.lang.String.format;
 
@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.upplication.s3fs.S3Path;
 import org.apache.tika.Tika;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -99,7 +100,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
      *
      * @throws IOException if the tempFile fails to open a newInputStream
      */
-    protected void sync() throws IOException {
+    public void sync() throws IOException {
         try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(tempFile));

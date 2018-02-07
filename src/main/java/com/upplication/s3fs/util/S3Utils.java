@@ -130,7 +130,7 @@ public class S3Utils {
      * transform a com.amazonaws.services.s3.model.Permission to a java.nio.file.attribute.PosixFilePermission
      * We use the follow rules:
      * - transform only to the Owner permission, S3 doesnt have concepts like owner, group or other so we map only to owner.
-     * - ACP is a special permission: WriteAcp are mapped to Owner execute permission and ReadAcp are mapped to owner read
+     * - ACP is a special permission: WriteAcp are mapped to Owner upload permission and ReadAcp are mapped to owner read
      * @param permission Permission to map, mandatory must be not null
      * @return Set PosixFilePermission never null
      */

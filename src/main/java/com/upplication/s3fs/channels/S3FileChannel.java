@@ -1,11 +1,13 @@
-package com.upplication.s3fs;
+package com.upplication.s3fs.channels;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.util.IOUtils;
+import com.upplication.s3fs.S3Path;
 import org.apache.tika.Tika;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -141,7 +143,7 @@ public class S3FileChannel extends FileChannel {
     }
 
     @Override
-    protected void implCloseChannel() throws IOException {
+    public void implCloseChannel() throws IOException {
         super.close();
         filechannel.close();
         if (!this.options.contains(StandardOpenOption.READ)) {
@@ -155,15 +157,14 @@ public class S3FileChannel extends FileChannel {
      *
      * @throws IOException if the tempFile fails to open a newInputStream
      */
-    protected void sync() throws IOException {
-        try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(Files.size(tempFile));
-            metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
-
-            String bucket = path.getFileStore().name();
-            String key = path.getKey();
-            path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
-        }
+    private void sync() throws IOException {
+        S3Uploader.builder()
+                .path(path)
+                .metadata(new ObjectMetadata())
+                .in(Files.newInputStream(tempFile))
+                .size(Files.size(tempFile))
+                .build()
+                .upload();
     }
+
 }
