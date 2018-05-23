@@ -77,6 +77,9 @@ public class ToUriTest extends S3UnitTestBase {
 
         S3Path path = new S3Path(fileSystem, "bla");
         assertEquals(URI.create("bla"), path.toUri());
+        
+        S3Path withSpaces = new S3Path(fileSystem, "with space");
+        assertEquals(URI.create("with%20space"), withSpaces.toUri());
     }
 
     @Test
