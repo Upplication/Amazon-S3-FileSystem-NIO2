@@ -552,7 +552,11 @@ public class S3Path implements Path {
 
     @Override
     public String toString() {
-        return toUri().toString();
+        if (this.isAbsolute()) {
+            return toUri().toString();
+        } else {
+            return this.uri;
+        }
     }
 
     @Override
