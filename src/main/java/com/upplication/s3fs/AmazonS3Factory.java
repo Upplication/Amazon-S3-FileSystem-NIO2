@@ -3,6 +3,7 @@ package com.upplication.s3fs;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSSessionCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -13,6 +14,8 @@ import com.amazonaws.services.s3.S3ClientOptions;
 import java.net.URI;
 import java.util.Properties;
 
+import org.apache.http.client.CredentialsProvider;
+
 
 /**
  * Factory base class to create a new AmazonS3 instance.
@@ -21,6 +24,7 @@ public abstract class AmazonS3Factory {
 
     public static final String ACCESS_KEY = "s3fs_access_key";
     public static final String SECRET_KEY = "s3fs_secret_key";
+    public static final String CREDENTIALS_PROVIDER = "s3fs_credentials_provider";
     public static final String REQUEST_METRIC_COLLECTOR_CLASS = "s3fs_request_metric_collector_class";
     public static final String CONNECTION_TIMEOUT = "s3fs_connection_timeout";
     public static final String MAX_CONNECTIONS = "s3fs_max_connections";
@@ -70,12 +74,16 @@ public abstract class AmazonS3Factory {
     protected abstract AmazonS3 createAmazonS3(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, RequestMetricCollector requestMetricsCollector);
 
     protected AWSCredentialsProvider getCredentialsProvider(Properties props) {
-        AWSCredentialsProvider credentialsProvider;
-        if (props.getProperty(ACCESS_KEY) == null && props.getProperty(SECRET_KEY) == null)
-            credentialsProvider = new DefaultAWSCredentialsProviderChain();
-        else
-            credentialsProvider = new AWSStaticCredentialsProvider(getAWSCredentials(props));
-        return credentialsProvider;
+      AWSCredentialsProvider credentialsProvider;
+      Object userCredentialsProvider = props.get(CREDENTIALS_PROVIDER);
+      if (userCredentialsProvider != null && userCredentialsProvider instanceof AWSCredentialsProvider) {
+        credentialsProvider = (AWSCredentialsProvider) userCredentialsProvider;
+      } else if (props.getProperty(ACCESS_KEY) == null && props.getProperty(SECRET_KEY) == null) {
+        credentialsProvider = new DefaultAWSCredentialsProviderChain();
+      } else {
+        credentialsProvider = new AWSStaticCredentialsProvider(getAWSCredentials(props));
+      }
+      return credentialsProvider;
     }
 
     protected RequestMetricCollector getRequestMetricsCollector(Properties props) {

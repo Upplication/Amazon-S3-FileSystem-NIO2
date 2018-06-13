@@ -63,6 +63,7 @@ Complete settings lists:
 
 * s3fs_access_key
 * s3fs_secret_key
+* s3fs_credentials_provider
 * s3fs_request_metric_collector_class
 * s3fs_connection_timeout
 * s3fs_max_connections
@@ -163,7 +164,7 @@ private FileSystem s3FileSystem;
 
 #### Roadmap:
 
-* Performance issue (slow querys with virtual folders, add multipart submit...)
+* Performance issue (slow queries with virtual folders, add multipart submit...)
 * Disallow upload binary files with same name as folders and vice versa
 
 #### Out of Roadmap:
