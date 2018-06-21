@@ -1,9 +1,7 @@
 package com.upplication.s3fs;
 
-import com.google.common.base.*;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.upplication.s3fs.attribute.S3BasicFileAttributes;
+import static com.google.common.collect.Iterables.concat;
+import static java.lang.String.format;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,12 +9,19 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.nio.file.*;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.google.common.collect.Iterables.*;
-import static java.lang.String.format;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 
 public class S3Path implements Path {
 
@@ -353,20 +358,30 @@ public class S3Path implements Path {
 
     @Override
     public Path resolve(Path other) {
+		String otherUri = "";
         if (other.isAbsolute()) {
-            Preconditions.checkArgument(other instanceof S3Path, "other must be an instance of %s", S3Path.class.getName());
+            Preconditions.checkArgument(other instanceof S3Path, "other must be an instance of %s or be relative", S3Path.class.getName());
             return other;
+		} else if (!(other instanceof S3Path)) {
+			int nameCount = other.getNameCount();
+			for (int i = 0; i < nameCount; i++) {
+				if (i > 0)
+					otherUri += PATH_SEPARATOR;
+				otherUri += other.getName(i);
+			}
+		} else {
+			S3Path otherS3Path = (S3Path) other;
+			otherUri = otherS3Path.uri;
         }
 
-        S3Path otherS3Path = (S3Path) other;
         StringBuilder pathBuilder = new StringBuilder();
 
         if (this.isAbsolute()) {
             pathBuilder.append(PATH_SEPARATOR + this.fileStore.name() + PATH_SEPARATOR);
         }
         pathBuilder.append(this.uri);
-        if (!otherS3Path.uri.isEmpty())
-            pathBuilder.append(PATH_SEPARATOR + otherS3Path.uri);
+		if (!otherUri.isEmpty())
+			pathBuilder.append(PATH_SEPARATOR + otherUri);
 
         return new S3Path(this.fileSystem, pathBuilder.toString());
     }

@@ -1,5 +1,6 @@
 package com.upplication.s3fs.Path;
 
+import com.upplication.s3fs.AmazonS3Factory;
 import com.upplication.s3fs.S3FileSystem;
 import com.upplication.s3fs.S3FileSystemProvider;
 import com.upplication.s3fs.S3Path;
@@ -9,8 +10,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.util.HashMap;
 
@@ -232,4 +235,55 @@ public class S3PathTest extends S3UnitTestBase {
         S3Path path = forPath("/buck/file");
         path.register(null, new WatchEvent.Kind<?>[0], new WatchEvent.Modifier[0]);
     }
+	@Test
+	public void testResolve() throws IOException {
+		S3FileSystem fileSystem2 = null;
+		try {
+			HashMap<String, String> environments = new HashMap<>();
+			environments.put(AmazonS3Factory.ACCESS_KEY, "accesskey");
+			environments.put(AmazonS3Factory.SECRET_KEY, "secretaccesskey");
+
+			fileSystem2 = (S3FileSystem) FileSystems.newFileSystem(URI.create("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket"), environments);
+
+			//good
+			S3Path parent = (S3Path) fileSystem2.provider().getPath(URI.create("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket"));
+			S3Path child = (S3Path) fileSystem2.provider().getPath(URI.create("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/rabbit"));
+			S3Path resolved = (S3Path) parent.resolve(child);
+
+			assertEquals(child, resolved);
+
+			resolved = (S3Path) parent.resolve("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/rabbit");
+			assertEquals(child, resolved);
+
+			resolved = (S3Path) parent.resolve("rabbit");
+			assertEquals(child, resolved);
+
+			resolved = (S3Path) parent.resolve(Paths.get("rabbit")); //unixPath
+			assertEquals(child, resolved);
+
+			resolved = (S3Path) parent.resolve(Paths.get("./rabbit")); //unixPath
+			assertEquals("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/./rabbit", resolved.toString());
+
+			resolved = (S3Path) parent.resolve(Paths.get("./rabbit in space")); //unixPath
+			assertEquals("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/./rabbit%20in%20space", resolved.toString());
+
+			try {
+				parent.resolve(Paths.get("/tmp"));
+				fail("expect IllegalArgumentException");
+			} catch (IllegalArgumentException e) {
+				//ignore
+				assertEquals("other must be an instance of com.upplication.s3fs.S3Path or be relative", e.getMessage());
+			}
+
+			//bad
+			S3Path parent2 = fileSystem2.getPath("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket");
+			S3Path child2 = fileSystem2.getPath("s3://accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/rabbit");
+			S3Path resolved2 = (S3Path) parent2.resolve(child2);
+			assertEquals("s3:/accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/s3:/accesskey:secretaccesskey@s3.test.amazonaws.com/bucket/rabbit", resolved2.toString());
+
+		} finally {
+			if (fileSystem2 != null)
+				fileSystem2.close();
+		}
+	}
 }
