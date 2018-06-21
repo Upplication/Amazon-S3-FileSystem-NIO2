@@ -49,7 +49,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
             if (exists) {
                 try (S3Object object = path.getFileSystem()
                         .getClient()
-                        .getObject(path.getFileStore().getBucket().getName(), key)) {
+						.getObject(path.getFileStore().name(), key)) {
                     Files.copy(object.getObjectContent(), tempFile, StandardCopyOption.REPLACE_EXISTING);
                 }
             }

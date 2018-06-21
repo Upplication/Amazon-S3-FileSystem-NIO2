@@ -3,7 +3,6 @@ package com.upplication.s3fs;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Preconditions;
@@ -364,9 +363,9 @@ public class S3FileSystemProvider extends FileSystemProvider {
         if (exists(s3Path))
             throw new FileAlreadyExistsException(format("target already exists: %s", s3Path));
         // create bucket if necesary
-        Bucket bucket = s3Path.getFileStore().getBucket();
-        String bucketName = s3Path.getFileStore().name();
-        if (bucket == null) {
+        S3FileStore fileStore = s3Path.getFileStore();
+		String bucketName = fileStore.name();
+		if (!fileStore.doesBucketExist(bucketName)) {
             s3Path.getFileSystem().getClient().createBucket(bucketName);
         }
         // create the object as directory

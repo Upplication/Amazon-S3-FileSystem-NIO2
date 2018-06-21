@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
+import java.util.Date;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.Owner;
-import com.google.common.collect.ImmutableList;
 
 public class S3FileStore extends FileStore implements Comparable<S3FileStore> {
 
@@ -65,9 +67,18 @@ public class S3FileStore extends FileStore implements Comparable<S3FileStore> {
     public <V extends FileStoreAttributeView> V getFileStoreAttributeView(Class<V> type) {
         if (type != S3FileStoreAttributeView.class)
             throw new IllegalArgumentException("FileStoreAttributeView of type '" + type.getName() + "' is not supported.");
-        Bucket buck = getBucket();
-        Owner owner = buck.getOwner();
-        return (V) new S3FileStoreAttributeView(buck.getCreationDate(), buck.getName(), owner.getId(), owner.getDisplayName());
+		Date creationDate = null;
+		String bucketName = name;
+		try {
+			Bucket bucket = getBucket();
+			creationDate = bucket.getCreationDate();
+			bucketName = bucket.getName();
+		} catch (@SuppressWarnings("unused") AmazonS3Exception e) {
+			// This is probably caused by not being authorized to call ListAll Buckets.
+			// Lets return what we can get our hands on instead of crashing at this point.
+		}
+		Owner owner = getOwner();
+		return (V) new S3FileStoreAttributeView(creationDate, bucketName, owner.getId(), owner.getDisplayName());
     }
 
     @Override
@@ -81,6 +92,10 @@ public class S3FileStore extends FileStore implements Comparable<S3FileStore> {
 
     public Bucket getBucket() {
         return getBucket(name);
+    }
+
+	public boolean doesBucketExist(String bucketName) {
+		return getClient().doesBucketExistV2(bucketName);
     }
 
     private Bucket getBucket(String bucketName) {
@@ -99,10 +114,14 @@ public class S3FileStore extends FileStore implements Comparable<S3FileStore> {
     }
 
     public Owner getOwner() {
-        Bucket buck = getBucket();
-        if (buck != null)
-            return buck.getOwner();
-        return fileSystem.getClient().getS3AccountOwner();
+		try {
+			AccessControlList acl = getClient().getBucketAcl(name);
+			return acl.getOwner();
+		} catch (@SuppressWarnings("unused") AmazonS3Exception e) {
+			// Client might not be authorized to request this info?
+			// User S3AccountOwner as fallback.
+		}
+		return fileSystem.getClient().getS3AccountOwner();
     }
 
     @Override
