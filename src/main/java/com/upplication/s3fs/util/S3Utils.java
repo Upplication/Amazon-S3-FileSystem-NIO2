@@ -11,6 +11,7 @@ import com.upplication.s3fs.attribute.S3UserPrincipal;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -94,17 +95,18 @@ public class S3Utils {
         String bucketName = s3Path.getFileStore().name();
 
         S3BasicFileAttributes attrs = toS3FileAttributes(objectSummary, key);
-        S3UserPrincipal userPrincipal = null;
-        Set<PosixFilePermission> permissions = null;
 
+        AccessControlList acl;
+        AmazonS3 client = s3Path.getFileSystem().getClient();
         if (!attrs.isDirectory()) {
-            AmazonS3 client = s3Path.getFileSystem().getClient();
-            AccessControlList acl = client.getObjectAcl(bucketName, key);
-            Owner owner = acl.getOwner();
+            acl = client.getObjectAcl(bucketName, key);
+        } else {
+            acl = client.getBucketAcl(bucketName);
 
-            userPrincipal = new S3UserPrincipal(owner.getId() + ":" + owner.getDisplayName());
-            permissions = toPosixFilePermissions(acl.getGrantsAsList());
         }
+        Owner owner = acl.getOwner();
+        S3UserPrincipal userPrincipal = new S3UserPrincipal(owner.getId() + ":" + owner.getDisplayName());
+        Set<PosixFilePermission> permissions = toPosixFilePermissions(acl.getGrantsAsList());
 
         return new S3PosixFileAttributes((String)attrs.fileKey(), attrs.lastModifiedTime(),
                 attrs.size(), attrs.isDirectory(), attrs.isRegularFile(), userPrincipal, null, permissions);
