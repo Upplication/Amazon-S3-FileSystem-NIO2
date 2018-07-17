@@ -41,8 +41,14 @@ public class S3Utils {
             result.setKey(key);
             result.setLastModified(metadata.getLastModified());
             result.setSize(metadata.getContentLength());
-            AccessControlList objectAcl = client.getObjectAcl(bucketName, key);
-            result.setOwner(objectAcl.getOwner());
+            try {
+                AccessControlList objectAcl = client.getObjectAcl(bucketName, key);
+                result.setOwner(objectAcl.getOwner());
+            } catch (AmazonS3Exception e) {
+                // If we don't have permission to view the ACL, that's fine, we can leave `owner` empty
+                if (e.getStatusCode() != 403)
+                    throw e;
+            }
             return result;
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() != 404)
