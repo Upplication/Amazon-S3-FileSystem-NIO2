@@ -21,6 +21,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class S3Utils {
 
+	public static ObjectMetadata getObjectMetadata(S3Path s3Path) {
+		String key = s3Path.getKey();
+		String bucketName = s3Path.getFileStore().name();
+		AmazonS3 client = s3Path.getFileSystem().getClient();
+		// try to find the element with the current key (maybe with end slash or maybe not.)
+		try {
+			return client.getObjectMetadata(bucketName, key);
+		} catch (AmazonS3Exception e) {
+			if (e.getStatusCode() != 404)
+				throw e;
+		}
+		return null;
+	}
+
     /**
      * Get the {@link S3ObjectSummary} that represent this Path or her first child if this path not exists
      *
