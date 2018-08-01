@@ -81,6 +81,7 @@ Complete settings lists:
 * s3fs_amazon_s3_factory
 * s3fs_signer_override
 * s3fs_path_style_access
+* s3fs_kms_key_id
 
 ##### Set endpoint to reduce data latency in your applications
 
@@ -160,6 +161,7 @@ private FileSystem s3FileSystem;
 * Works with virtual s3 folders (not really exists and are element's subkeys)
 * List buckets for the client
 * Multi endpoint fileSystem
+* Support for encryption with a user-specified AWS KMS CMK ID
 
 #### Roadmap:
 

@@ -67,11 +67,12 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     public static final String CHARSET_KEY = "s3fs_charset";
     public static final String AMAZON_S3_FACTORY_CLASS = "s3fs_amazon_s3_factory";
+    public static final String KMS_KEY_ID = "s3fs_kms_key_id";
 
     private static final ConcurrentMap<String, S3FileSystem> fileSystems = new ConcurrentHashMap<>();
     private static final List<String> PROPS_TO_OVERLOAD = Arrays.asList(ACCESS_KEY, SECRET_KEY, REQUEST_METRIC_COLLECTOR_CLASS, CONNECTION_TIMEOUT, MAX_CONNECTIONS, MAX_ERROR_RETRY, PROTOCOL, PROXY_DOMAIN,
             PROXY_HOST, PROXY_PASSWORD, PROXY_PORT, PROXY_USERNAME, PROXY_WORKSTATION, SOCKET_SEND_BUFFER_SIZE_HINT, SOCKET_RECEIVE_BUFFER_SIZE_HINT, SOCKET_TIMEOUT,
-            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS);
+            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS, KMS_KEY_ID);
 
     private S3Utils s3Utils = new S3Utils();
     private Cache cache = new Cache();
@@ -550,7 +551,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
      * @return S3FileSystem never null
      */
     public S3FileSystem createFileSystem(URI uri, Properties props) {
-        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost());
+        String keyId = props.getProperty(KMS_KEY_ID);
+        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost(), keyId);
     }
 
     protected AmazonS3 getAmazonS3(URI uri, Properties props) {

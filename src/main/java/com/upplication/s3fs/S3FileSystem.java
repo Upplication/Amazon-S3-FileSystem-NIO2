@@ -27,14 +27,20 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
     private final String key;
     private final AmazonS3 client;
     private final String endpoint;
+    private final String kmsKeyId;
     private int cache;
 
     public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
+        this(provider, key, client, endpoint, null);
+    }
+
+    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint, String kmsKeyId) {
         this.provider = provider;
         this.key = key;
         this.client = client;
         this.endpoint = endpoint;
         this.cache = 60000; // 1 minute cache for the s3Path
+        this.kmsKeyId = kmsKeyId;
     }
 
     @Override
@@ -175,5 +181,9 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
 
     public int getCache() {
         return cache;
+    }
+
+    public String getKmsKeyId() {
+        return kmsKeyId;
     }
 }

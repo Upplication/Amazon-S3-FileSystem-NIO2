@@ -15,7 +15,9 @@ import java.util.Set;
 import org.apache.tika.Tika;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 
 public class S3SeekableByteChannel implements SeekableByteChannel {
 
@@ -109,7 +111,12 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
 
             String bucket = path.getFileStore().name();
             String key = path.getKey();
-            path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
+            PutObjectRequest request = new PutObjectRequest(bucket, key, stream, metadata);
+            String keyId = path.getFileSystem().getKmsKeyId();
+            if (keyId != null) {
+                request.withSSEAwsKeyManagementParams(new SSEAwsKeyManagementParams(keyId));
+            }
+            path.getFileSystem().getClient().putObject(request);
         }
     }
 
