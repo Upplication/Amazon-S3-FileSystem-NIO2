@@ -59,6 +59,18 @@ Map<String, ?> env = ImmutableMap.<String, Object> builder()
 FileSystems.newFileSystem("s3:///", env, Thread.currentThread().getContextClassLoader());
 ```
 
+##### Uploading Objects Using Multipart Upload API
+
+By default s3fs will upload an object to s3 by calling `AmazonS3Client#putObject()`.
+If you whant to upload file using the Multipart Upload API :
+
+```java
+Map<String, ?> env = ImmutableMap.<String, Object> builder()
+    .put(com.upplication.s3fs.AmazonS3Factory.MULTIPART_UPLOAD_ENABLED, "true")
+    .build()
+FileSystems.newFileSystem("s3:///", env, Thread.currentThread().getContextClassLoader());
+```
+
 Complete settings lists:
 
 * s3fs_access_key

@@ -208,11 +208,11 @@ public class S3FileSystemTest extends S3UnitTestBase {
         S3FileSystem s3fs4 = (S3FileSystem) provider.newFileSystem(URI.create("s3://accessKey:secretKey@mirror2.amazon.test"), null);
         S3FileSystem s3fs6 = (S3FileSystem) provider.newFileSystem(URI.create("s3://access_key:secret_key@mirror1.amazon.test/"), null);
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs7 = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
-        S3FileSystem s3fs8 = new S3FileSystem(provider, null, amazonClientMock, null);
-        S3FileSystem s3fs9 = new S3FileSystem(provider, null, amazonClientMock, null);
-        S3FileSystem s3fs10 = new S3FileSystem(provider, "somekey", amazonClientMock, null);
-        S3FileSystem s3fs11 = new S3FileSystem(provider, "access-key@mirror2.amazon.test", amazonClientMock, "mirror2.amazon.test");
+        S3FileSystem s3fs7 = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
+        S3FileSystem s3fs8 = new S3FileSystem(provider, null, amazonClientMock, null, null);
+        S3FileSystem s3fs9 = new S3FileSystem(provider, null, amazonClientMock, null, null);
+        S3FileSystem s3fs10 = new S3FileSystem(provider, "somekey", amazonClientMock, null, null);
+        S3FileSystem s3fs11 = new S3FileSystem(provider, "access-key@mirror2.amazon.test", amazonClientMock, "mirror2.amazon.test", null);
 
         // FIXME: review the hashcode creation.
         assertEquals(1483378423, s3fs1.hashCode());
@@ -252,7 +252,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     public void key2Parts() {
         S3FileSystemProvider provider = new S3FileSystemProvider();
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
+        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
         try {
             String[] parts = s3fs.key2Parts("/bucket/folder with spaces/file");
             assertEquals("", parts[0]);
@@ -272,7 +272,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     public void parts2Key() {
         S3FileSystemProvider provider = new S3FileSystemProvider();
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
+        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
         S3Path path = s3fs.getPath("/bucket", "folder with spaces", "file");
         try {
             assertEquals("folder with spaces/file", path.getKey());
@@ -293,7 +293,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
         AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard()
                 .withRegion(Regions.EU_WEST_1)
                 .build();
-        S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror");
+        S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror", null);
         S3Path path = new S3Path(s3FileSystem, fileName);
 
         String url = amazonS3Client.getUrl("bucket", path.getKey()).toString();
@@ -309,7 +309,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
         AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard()
                 .withRegion(Regions.EU_WEST_1)
                 .build();
-        S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror");
+        S3FileSystem s3FileSystem = new S3FileSystem(null, null, amazonS3Client, "mirror", null);
         S3Path path = new S3Path(s3FileSystem, fileName);
 
         String url = amazonS3Client.getUrl("bucket", path.getKey()).toString();
@@ -321,7 +321,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     public void createDirectory() throws IOException {
         S3FileSystemProvider provider = new S3FileSystemProvider();
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
+        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
         try {
             S3Path folder = s3fs.getPath("/bucket", "folder");
             provider.createDirectory(folder);
@@ -339,7 +339,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     public void createDirectoryWithAttributes() throws IOException {
         S3FileSystemProvider provider = new S3FileSystemProvider();
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
+        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
         try {
             S3Path folder = s3fs.getPath("/bucket", "folder");
             provider.createDirectory(folder, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrw")));
@@ -356,7 +356,7 @@ public class S3FileSystemTest extends S3UnitTestBase {
     public void isSameFile() throws IOException {
         S3FileSystemProvider provider = new S3FileSystemProvider();
         AmazonS3ClientMock amazonClientMock = AmazonS3MockFactory.getAmazonClientMock();
-        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test");
+        S3FileSystem s3fs = new S3FileSystem(provider, null, amazonClientMock, "mirror1.amazon.test", null);
         try {
             S3Path folder = s3fs.getPath("/bucket", "folder");
             S3Path sameFolder = s3fs.getPath("/bucket", "folder");

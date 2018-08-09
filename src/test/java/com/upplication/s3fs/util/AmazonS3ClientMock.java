@@ -37,13 +37,12 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AbstractAmazonS3;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.S3ResponseMetadata;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.waiters.AmazonS3Waiters;
 import com.amazonaws.util.StringUtils;
-import org.apache.http.MethodNotSupportedException;
+import java.io.ByteArrayOutputStream;
 
 public class AmazonS3ClientMock extends AbstractAmazonS3 {
     /**
@@ -63,6 +62,7 @@ public class AmazonS3ClientMock extends AbstractAmazonS3 {
 
     private Path base;
     private Map<String, Owner> bucketOwners = new HashMap<>();
+    private final Map<String, S3MultipartUpload> multipartUploads = new HashMap<>();
 
     public AmazonS3ClientMock(Path base) {
         this.base = base;
@@ -635,6 +635,28 @@ public class AmazonS3ClientMock extends AbstractAmazonS3 {
 
     private Path find(String bucketName) {
         return base.resolve(bucketName);
+    }
+
+    public static class S3MultipartUpload {
+        private final S3Element s3Element;
+        private final List<byte[]> parts;
+
+        public S3MultipartUpload(final S3Element s3Element) {
+            this.s3Element = s3Element;
+            this.parts = new ArrayList<>();
+        }
+
+        public S3Element getS3Element() {
+            return s3Element;
+        }
+
+        public List<byte[]> getParts() {
+            return parts;
+        }
+
+        public void addPart(final byte[] part) {
+            parts.add(part);
+        }
     }
 
     public static class S3Element {
@@ -1217,12 +1239,40 @@ public class AmazonS3ClientMock extends AbstractAmazonS3 {
 
     @Override
     public InitiateMultipartUploadResult initiateMultipartUpload(InitiateMultipartUploadRequest request) throws AmazonClientException {
-        throw new UnsupportedOperationException();
+        final String uploadId = UUID.randomUUID().toString();
+        final InitiateMultipartUploadResult result = new InitiateMultipartUploadResult();
+
+        result.setUploadId(uploadId);
+        result.setKey(request.getKey());
+        result.setBucketName(request.getBucketName());
+
+        final InputStream inputStream = new ByteArrayInputStream(new byte[0]);
+        final S3Element element = parse(inputStream, request.getBucketName(), request.getKey());
+
+        multipartUploads.put(uploadId, new S3MultipartUpload(element));
+
+        return result;
     }
 
     @Override
     public UploadPartResult uploadPart(UploadPartRequest request) throws AmazonClientException {
-        throw new UnsupportedOperationException();
+        final String uploadId = request.getUploadId();
+        final UploadPartResult result = new UploadPartResult();
+
+        if ( ! multipartUploads.containsKey(uploadId)) {
+            throw new AmazonServiceException("Unknown uploadId : " + uploadId);
+        }
+
+        try {
+            multipartUploads.get(uploadId).addPart(IOUtils.toByteArray(request.getInputStream()));
+
+            result.setETag(UUID.randomUUID().toString());
+            result.setPartNumber(request.getPartNumber());
+
+            return result;
+        } catch (IOException e) {
+            throw new AmazonServiceException("Fail to upload part", e);
+        }
     }
 
     @Override
@@ -1232,12 +1282,41 @@ public class AmazonS3ClientMock extends AbstractAmazonS3 {
 
     @Override
     public void abortMultipartUpload(AbortMultipartUploadRequest request) throws AmazonClientException {
-        throw new UnsupportedOperationException();
+        multipartUploads.remove(request.getUploadId());
     }
 
     @Override
     public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) throws AmazonClientException {
-        throw new UnsupportedOperationException();
+        final String uploadId = request.getUploadId();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        final CompleteMultipartUploadResult result = new CompleteMultipartUploadResult();
+
+        if ( ! multipartUploads.containsKey(uploadId)) {
+            throw new AmazonServiceException("Unknown uploadId : " + uploadId);
+        }
+
+        final S3MultipartUpload upload = multipartUploads.remove(uploadId);
+        final S3Element element = upload.getS3Element();
+        final S3Object s3Object = element.getS3Object();
+        final ObjectMetadata metadata = s3Object.getObjectMetadata();
+
+        for (final byte[] part : upload.getParts()) {
+            try {
+                outputStream.write(part);
+            } catch (IOException e) {
+                throw new AmazonServiceException("Fail to complete upload", e);
+            }
+        }
+
+        final byte[] bytes = outputStream.toByteArray();
+        final InputStream inputStream = new ByteArrayInputStream(bytes);
+
+        s3Object.setObjectContent(inputStream);
+        metadata.setContentLength(bytes.length);
+
+        persist(s3Object.getBucketName(), element);
+
+        return result;
     }
 
     @Override

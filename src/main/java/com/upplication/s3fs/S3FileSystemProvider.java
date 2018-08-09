@@ -6,6 +6,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectId;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -31,8 +32,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.google.common.collect.Sets.difference;
 import static com.upplication.s3fs.AmazonS3Factory.*;
+import static java.lang.String.format;
 import static java.lang.String.format;
 
 /**
@@ -65,13 +70,21 @@ import static java.lang.String.format;
  */
 public class S3FileSystemProvider extends FileSystemProvider {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(S3FileSystemProvider.class);
     public static final String CHARSET_KEY = "s3fs_charset";
     public static final String AMAZON_S3_FACTORY_CLASS = "s3fs_amazon_s3_factory";
+    public static final String MULTIPART_UPLOAD_ENABLED = "s3fs_multipart_upload_enabled";
+    public static final String MULTIPART_UPLOAD_PART_SIZE = "s3fs_multipart_upload_part_size";
+    public static final String MULTIPART_UPLOAD_NUM_STREAMS = "s3fs_multipart_upload_num_streams";
+    public static final String MULTIPART_UPLOAD_QUEUE_CAPACITY = "s3fs_multipart_upload_queue_capacity";
+    public static final String MULTIPART_UPLOAD_NUM_UPLOAD_THREADS = "s3fs_multipart_upload_num_upload_threads";
 
     private static final ConcurrentMap<String, S3FileSystem> fileSystems = new ConcurrentHashMap<>();
     private static final List<String> PROPS_TO_OVERLOAD = Arrays.asList(ACCESS_KEY, SECRET_KEY, REQUEST_METRIC_COLLECTOR_CLASS, CONNECTION_TIMEOUT, MAX_CONNECTIONS, MAX_ERROR_RETRY, PROTOCOL, PROXY_DOMAIN,
             PROXY_HOST, PROXY_PASSWORD, PROXY_PORT, PROXY_USERNAME, PROXY_WORKSTATION, SOCKET_SEND_BUFFER_SIZE_HINT, SOCKET_RECEIVE_BUFFER_SIZE_HINT, SOCKET_TIMEOUT,
-            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS);
+            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS,
+            MULTIPART_UPLOAD_ENABLED, MULTIPART_UPLOAD_PART_SIZE, MULTIPART_UPLOAD_NUM_STREAMS,
+            MULTIPART_UPLOAD_QUEUE_CAPACITY, MULTIPART_UPLOAD_NUM_UPLOAD_THREADS);
 
     private S3Utils s3Utils = new S3Utils();
     private Cache cache = new Cache();
@@ -95,6 +108,9 @@ public class S3FileSystemProvider extends FileSystemProvider {
         // create the filesystem with the final properties, store and return
         S3FileSystem fileSystem = createFileSystem(uri, props);
         fileSystems.put(fileSystem.getKey(), fileSystem);
+
+        LOGGER.debug("New file system created. url:{}, props:{}", uri, props);
+
         return fileSystem;
     }
 
@@ -302,6 +318,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     @Override
     public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) throws IOException {
+        LOGGER.debug("New directory stream. path:{}, filter:{}", dir, filter);
+
         final S3Path s3Path = toS3Path(dir);
         return new DirectoryStream<Path>() {
             @Override
@@ -316,8 +334,47 @@ public class S3FileSystemProvider extends FileSystemProvider {
         };
     }
 
+    private S3MultipartUploadOutputStream createMultipartUploadOutputStream(final S3Path s3Path, Set<? extends OpenOption> opts) throws IOException {
+        final S3ObjectId objectId = s3Path.toS3ObjectId();
+        final Set<OpenOption> options = Sets.newHashSet(opts);
+        final S3FileSystem fileSystem = s3Path.getFileSystem();
+        final Properties properties = fileSystem.getProperties();
+        final AmazonS3 client = s3Path.getFileSystem().getClient();
+        final boolean createOpt = options.remove(StandardOpenOption.CREATE);
+        final boolean createNewOpt = options.remove(StandardOpenOption.CREATE_NEW);
+        final S3MultipartUploadOutputStream stream = new S3MultipartUploadOutputStream(client, objectId, properties);
+
+        // validate options
+        if (options.isEmpty()) {
+            return stream;
+        }
+
+        // Remove irrelevant/ignored options
+        options.remove(StandardOpenOption.WRITE);
+        options.remove(StandardOpenOption.SPARSE);
+        options.remove(StandardOpenOption.TRUNCATE_EXISTING);
+
+        if (!options.isEmpty()) {
+            throw new UnsupportedOperationException(format("Unsupported operation: %s", options));
+        }
+
+        if (createNewOpt && fileSystem.provider().exists(s3Path)) {
+            fileSystem.provider().delete(s3Path);
+        }
+
+        if (!createOpt && fileSystem.provider().exists(s3Path)) {
+            throw new FileAlreadyExistsException(format("Target already exists: %s", s3Path));
+        }
+
+        return stream;
+    }
+
     @Override
     public InputStream newInputStream(Path path, OpenOption... options) throws IOException {
+        LOGGER.debug("New input stream. path:{}, options:{}", path, options);
+
+        System.out.println("newInputStream");
+
         S3Path s3Path = toS3Path(path);
         String key = s3Path.getKey();
 
@@ -342,14 +399,46 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
-        S3Path s3Path = toS3Path(path);
-        return new S3SeekableByteChannel(s3Path, options);
+        LOGGER.debug("New byte channel. path:{}, options:{}", path, options);
+
+        final S3Path s3Path = toS3Path(path);
+        final boolean multipartEnabled = isMultipartUploadCapable(s3Path, options);
+
+        if (!multipartEnabled) {
+
+            LOGGER.debug("Using S3SeekableByteChannel");
+
+            return new S3SeekableByteChannel(s3Path, options);
+        }
+
+        LOGGER.debug("Using S3MultipartFileChannel");
+
+        final S3MultipartUploadOutputStream outputStream = createMultipartUploadOutputStream(s3Path, options);
+        final FileChannel channel = new S3MultipartUploadChannel(outputStream);
+
+        return channel;
     }
 
     @Override
     public FileChannel newFileChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
-        S3Path s3Path = toS3Path(path);
-        return new S3FileChannel(s3Path, options);
+        LOGGER.debug("New file channel. path:{}, filter:{}", path, options);
+
+        final S3Path s3Path = toS3Path(path);
+        final boolean multipartEnabled = isMultipartUploadCapable(s3Path, options);
+
+        if (!multipartEnabled) {
+
+            LOGGER.debug("Using S3FileChannel");
+
+            return new S3FileChannel(s3Path, options);
+        }
+
+        LOGGER.debug("Using S3MultipartFileChannel");
+
+        final S3MultipartUploadOutputStream outputStream = createMultipartUploadOutputStream(s3Path, options);
+        final FileChannel channel = new S3MultipartUploadChannel(outputStream);
+
+        return channel;
     }
 
     /**
@@ -359,6 +448,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
      */
     @Override
     public void createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException {
+        LOGGER.debug("Create directory. path:{}, attrs:{}", dir, attrs);
+
         S3Path s3Path = toS3Path(dir);
         Preconditions.checkArgument(attrs.length == 0, "attrs not yet supported: %s", ImmutableList.copyOf(attrs)); // TODO
         if (exists(s3Path))
@@ -378,6 +469,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     @Override
     public void delete(Path path) throws IOException {
+        LOGGER.debug("Delete path:{}", path);
+
         S3Path s3Path = toS3Path(path);
         if (Files.notExists(s3Path))
             throw new NoSuchFileException("the path: " + this + " not exists");
@@ -393,6 +486,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     @Override
     public void copy(Path source, Path target, CopyOption... options) throws IOException {
+        LOGGER.debug("Copy {} to target. options:{}", source, target, options);
+
         if (isSameFile(source, target))
             return;
 
@@ -424,6 +519,8 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     @Override
     public void move(Path source, Path target, CopyOption... options) throws IOException {
+        LOGGER.debug("Move {} to target. options:{}", source, target, options);
+
         if (options != null && Arrays.asList(options).contains(StandardCopyOption.ATOMIC_MOVE))
             throw new AtomicMoveNotSupportedException(source.toString(), target.toString(), "Atomic not supported");
         copy(source, target, options);
@@ -550,7 +647,7 @@ public class S3FileSystemProvider extends FileSystemProvider {
      * @return S3FileSystem never null
      */
     public S3FileSystem createFileSystem(URI uri, Properties props) {
-        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost());
+        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost(), props);
     }
 
     protected AmazonS3 getAmazonS3(URI uri, Properties props) {
@@ -633,5 +730,17 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
     public void setCache(Cache cache) {
         this.cache = cache;
+    }
+
+    private boolean isMultipartUploadCapable(final S3Path s3Path, final Set<? extends OpenOption> options) {
+        // Not supported options
+        if (options.contains(StandardOpenOption.READ) || options.contains(StandardOpenOption.APPEND)) {
+            return false;
+        }
+
+        final S3FileSystem fileSystem = s3Path.getFileSystem();
+        final Properties properties = fileSystem.getProperties();
+
+        return Boolean.parseBoolean(properties.getProperty(MULTIPART_UPLOAD_ENABLED, "false"));
     }
 }

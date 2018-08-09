@@ -2,7 +2,6 @@ package com.upplication.s3fs;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.util.IOUtils;
 import org.apache.tika.Tika;
 
 import java.io.*;

@@ -1,5 +1,6 @@
 package com.upplication.s3fs;
 
+import com.amazonaws.services.s3.model.S3ObjectId;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -129,6 +130,10 @@ public class S3Path implements Path {
         }
 
         return key;
+    }
+
+    public S3ObjectId toS3ObjectId() {
+        return new S3ObjectId(fileStore.getBucket().getName(), getKey());
     }
 
     @Override
