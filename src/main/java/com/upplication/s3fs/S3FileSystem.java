@@ -15,6 +15,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Properties;
 
 /**
  * S3FileSystem with a concrete client configured and ready to use.
@@ -24,16 +25,18 @@ import com.google.common.collect.ImmutableSet;
 public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem> {
 
     private final S3FileSystemProvider provider;
+    private final Properties properties;
     private final String key;
     private final AmazonS3 client;
     private final String endpoint;
     private int cache;
 
-    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
+    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint, Properties props) {
         this.provider = provider;
         this.key = key;
         this.client = client;
         this.endpoint = endpoint;
+        this.properties = props;
         this.cache = 60000; // 1 minute cache for the s3Path
     }
 
@@ -175,5 +178,9 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
 
     public int getCache() {
         return cache;
+    }
+
+    public Properties getProperties() {
+        return properties;
     }
 }

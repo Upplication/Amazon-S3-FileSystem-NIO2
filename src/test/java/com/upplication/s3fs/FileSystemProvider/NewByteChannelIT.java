@@ -16,12 +16,10 @@ import java.nio.channels.NonWritableChannelException;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
 import java.util.EnumSet;
-import java.util.Properties;
 import java.util.UUID;
 
 import static com.upplication.s3fs.util.S3EndpointConstant.S3_GLOBAL_URI_IT;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 public class NewByteChannelIT extends S3UnitTestBase {
 

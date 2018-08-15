@@ -1,24 +1,17 @@
 package com.upplication.s3fs;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
-import com.upplication.s3fs.util.CopyDirVisitor;
 import com.upplication.s3fs.util.EnvironmentBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.UUID;
+
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 
 import static com.upplication.s3fs.util.S3EndpointConstant.S3_GLOBAL_URI_IT;
+import java.nio.file.FileSystemNotFoundException;
 import static org.junit.Assert.*;
 
 public class FileSystemsIT {
