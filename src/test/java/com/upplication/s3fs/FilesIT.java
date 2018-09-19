@@ -2,6 +2,7 @@ package com.upplication.s3fs;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.github.marschall.memoryfilesystem.MemoryFileSystemBuilder;
+import com.google.common.collect.ImmutableSet;
 import com.upplication.s3fs.util.CopyDirVisitor;
 import com.upplication.s3fs.util.EnvironmentBuilder;
 import org.junit.Before;
@@ -14,9 +15,10 @@ import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.UUID;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.*;
 
 import static com.upplication.s3fs.util.S3EndpointConstant.S3_GLOBAL_URI_IT;
 import static org.junit.Assert.*;
@@ -479,6 +481,22 @@ public class FilesIT {
         assertNotNull(fileAttributes);
         assertEquals(true, fileAttributes.isDirectory());
         assertEquals(startPath + "lib/angular/", fileAttributes.fileKey());
+    }
+
+    @Test
+    public void readPosixPermissions() throws IOException {
+
+        Path dir = uploadDir();
+
+        Path bucketRoot = fileSystemAmazon.getPath(bucket, "");
+        Path directory = dir.resolve("assets1");
+        Path file = dir.resolve("assets1").resolve("index.html");
+
+        Set expectedPermissions = ImmutableSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE);
+
+        assertEquals(expectedPermissions, Files.readAttributes(bucketRoot, PosixFileAttributes.class).permissions());
+        assertEquals(expectedPermissions, Files.readAttributes(directory, PosixFileAttributes.class).permissions());
+        assertEquals(expectedPermissions, Files.readAttributes(file, PosixFileAttributes.class).permissions());
     }
 
     @Test
