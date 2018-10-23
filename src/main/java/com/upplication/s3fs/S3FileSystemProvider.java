@@ -10,6 +10,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.sun.nio.file.ExtendedOpenOption;
 import com.upplication.s3fs.attribute.S3BasicFileAttributeView;
 import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 import com.upplication.s3fs.attribute.S3PosixFileAttributeView;
@@ -340,9 +341,15 @@ public class S3FileSystemProvider extends FileSystemProvider {
         }
     }
 
+    private static final Set<? extends OpenOption> RANGE_SEEK_OPEN_OPTIONS = new HashSet<>(Arrays.asList(StandardOpenOption.READ, StandardOpenOption.SPARSE));
+
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         S3Path s3Path = toS3Path(path);
+        if (RANGE_SEEK_OPEN_OPTIONS.equals(options))
+        {
+            return new S3RangeBasedSeekableByteChannel(s3Path);
+        }
         return new S3SeekableByteChannel(s3Path, options);
     }
 
