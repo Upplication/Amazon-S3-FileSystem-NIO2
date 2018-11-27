@@ -4,7 +4,7 @@
 	<groupId>com.upplication</groupId>
 	<artifactId>s3fs</artifactId>
 	<packaging>jar</packaging>
-	<version>2.2.2</version>
+	<version>2.2.2.2</version>
 	<name>s3fs</name>
 	<description>S3 filesystem provider for Java 7</description>
 	<url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
@@ -205,87 +205,6 @@
 		</plugins>
 	</build>
 	<profiles>
-        <profile>
-            <id>integration-tests</id>
-            <activation>
-                <property>
-                    <name>env.TRAVIS</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<configuration>
-							<argLine>${jacoco.agent.arg}</argLine>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<version>2.7.1</version>
-						<configuration>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<argLine>${jacoco.agent.arg}</argLine>
-						</configuration>
-						<executions>
-							<execution>
-								<id>integration-test</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>integration-test</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>verify</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-
-					<plugin>
-						<groupId>org.eluder.coveralls</groupId>
-						<artifactId>coveralls-maven-plugin</artifactId>
-						<version>4.1.0</version>
-					</plugin>
-
-					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.7.6.201602180812</version>
-
-						<executions>
-							<!-- Prepare execution with Surefire -->
-							<execution>
-								<id>pre-unit-test</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-								<configuration>
-									<propertyName>jacoco.agent.arg</propertyName>
-									<append>true</append>
-								</configuration>
-							</execution>
-							<!-- Generate report after tests are run -->
-							<execution>
-								<id>post-unit-test</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>report</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-            </build>
-        </profile>
 		<profile>
 			<id>release-sign-artifacts</id>
 

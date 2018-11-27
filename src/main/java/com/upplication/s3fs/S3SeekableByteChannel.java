@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.amazonaws.services.s3.model.PutObjectResult;
 import org.apache.tika.Tika;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -23,6 +24,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
     private Set<? extends OpenOption> options;
     private SeekableByteChannel seekable;
     private Path tempFile;
+    private PutObjectResult putResult;
 
     /**
      * Open or creates a file, returning a seekable byte channel
@@ -35,13 +37,17 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
         this.path = path;
         this.options = Collections.unmodifiableSet(new HashSet<>(options));
         String key = path.getKey();
-        boolean exists = path.getFileSystem().provider().exists(path);
 
-        if (exists && this.options.contains(StandardOpenOption.CREATE_NEW))
-            throw new FileAlreadyExistsException(format("target already exists: %s", path));
-        else if (!exists && !this.options.contains(StandardOpenOption.CREATE_NEW) &&
-                !this.options.contains(StandardOpenOption.CREATE))
-            throw new NoSuchFileException(format("target not exists: %s", path));
+        boolean exists = false;
+        if (!options.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
+            exists = path.getFileSystem().provider().exists(path);
+
+            if (exists && this.options.contains(StandardOpenOption.CREATE_NEW))
+                throw new FileAlreadyExistsException(format("target already exists: %s", path));
+            else if (!exists && !this.options.contains(StandardOpenOption.CREATE_NEW) &&
+                    !this.options.contains(StandardOpenOption.CREATE))
+                throw new NoSuchFileException(format("target not exists: %s", path));
+        }
 
         tempFile = Files.createTempFile("temp-s3-", key.replaceAll("/", "_"));
         boolean removeTempFile = true;
@@ -109,7 +115,8 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
 
             String bucket = path.getFileStore().name();
             String key = path.getKey();
-            path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
+            // Stash the response from S3 to be used later
+            putResult = path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
         }
     }
 
@@ -141,5 +148,9 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
     @Override
     public long position() throws IOException {
         return seekable.position();
+    }
+
+    public PutObjectResult getPutResult() {
+        return putResult;
     }
 }

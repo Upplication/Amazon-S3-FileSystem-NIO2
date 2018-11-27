@@ -18,19 +18,22 @@ import com.upplication.s3fs.attribute.S3PosixFileAttributes;
 import com.upplication.s3fs.util.AttributesUtils;
 import com.upplication.s3fs.util.Cache;
 import com.upplication.s3fs.util.S3Utils;
+import sun.nio.ch.FileChannelImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 
 import static com.google.common.collect.Sets.difference;
 import static com.upplication.s3fs.AmazonS3Factory.*;
@@ -384,18 +387,87 @@ public class S3FileSystemProvider extends FileSystemProvider {
     }
 
     @Override
+    public boolean deleteIfExists(Path path) throws IOException {
+        S3Path s3Path = toS3Path(path);
+        deleteWithoutExistsCheck(s3Path);
+        // This violates the contract for the return value. To determine if the file existed, we'd have to do a separate
+        // S3 query before doing the delete. Since we don't care about whether it existed for current use-cases
+        // this represents a ~50% perf win.
+        return true;
+    }
+
+    @Override
     public void delete(Path path) throws IOException {
         S3Path s3Path = toS3Path(path);
         if (Files.notExists(s3Path))
             throw new NoSuchFileException("the path: " + this + " not exists");
         if (Files.isDirectory(s3Path) && Files.newDirectoryStream(s3Path).iterator().hasNext())
             throw new DirectoryNotEmptyException("the path: " + this + " is a directory and is not empty");
+        deleteWithoutExistsCheck(s3Path);
+    }
 
-        String key = s3Path.getKey();
-        String bucketName = s3Path.getFileStore().name();
-        s3Path.getFileSystem().getClient().deleteObject(bucketName, key);
-        // we delete the two objects (sometimes exists the key '/' and sometimes not)
-        s3Path.getFileSystem().getClient().deleteObject(bucketName, key + "/");
+    @Override
+    public OutputStream newOutputStream(Path path, OpenOption... options) throws IOException {
+        // Override to return a subclass that gives access to the S3 PUT result
+
+        // Largely copied out of superclass
+        int len = options.length;
+        Set<OpenOption> opts ;
+        if (len == 0) {
+            opts = new HashSet<OpenOption>(Arrays.asList(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE));
+        } else {
+            opts = new HashSet<>();
+            for (OpenOption opt: options) {
+                if (opt == StandardOpenOption.READ)
+                    throw new IllegalArgumentException("READ not allowed");
+                opts.add(opt);
+            }
+            opts.add(StandardOpenOption.WRITE);
+        }
+
+        S3Path s3Path = toS3Path(path);
+
+        // Wire up a output stream that will have access to the PUT object response from S3
+        S3SeekableByteChannel wbc = new S3SeekableByteChannel(s3Path, opts);
+        return new S3FSOutputStream(Channels.newOutputStream(wbc), wbc);
+    }
+
+    private void deleteWithoutExistsCheck(final S3Path s3Path) {
+        final String key = s3Path.getKey();
+        final String bucketName = s3Path.getFileStore().name();
+
+        // Spin up a small thread pool to execute the two deletes in parallel
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            List<Future<Object>> futures = executor.invokeAll(Arrays.asList(
+                    new Callable<Object>() {
+                        @Override
+                        public Object call() {
+                            s3Path.getFileSystem().getClient().deleteObject(bucketName, key);
+                            return null;
+                        }
+                    },
+                    new Callable<Object>() {
+                        @Override
+                        public Object call() {
+                            // we delete the two objects (sometimes exists the key '/' and sometimes not)
+                            s3Path.getFileSystem().getClient().deleteObject(bucketName, key + "/");
+                            return null;
+                        }
+                }));
+            // Thread pool will already be done will all work because invokeAll() blocks until its full list is complete
+            executor.shutdownNow();
+            for (Future<Object> future : futures) {
+                try {
+                    future.get();
+                }
+                catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        catch (InterruptedException e) { throw new RuntimeException(e); }
     }
 
     @Override
