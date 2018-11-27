@@ -1,13 +1,9 @@
 package com.upplication.s3fs.Path;
 
-import com.google.common.collect.ImmutableMap;
-import com.upplication.s3fs.S3FileSystem;
-import com.upplication.s3fs.S3FileSystemProvider;
-import com.upplication.s3fs.S3Path;
-import com.upplication.s3fs.S3UnitTestBase;
-import com.upplication.s3fs.util.S3EndpointConstant;
-import org.junit.Before;
-import org.junit.Test;
+import static com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY;
+import static com.upplication.s3fs.AmazonS3Factory.SECRET_KEY;
+import static com.upplication.s3fs.util.S3EndpointConstant.S3_GLOBAL_URI_TEST;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.net.URI;
@@ -15,11 +11,15 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.Map;
 
-import static com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY;
-import static com.upplication.s3fs.AmazonS3Factory.SECRET_KEY;
-import static com.upplication.s3fs.util.S3EndpointConstant.*;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.ImmutableMap;
+import com.upplication.s3fs.S3FileSystem;
+import com.upplication.s3fs.S3FileSystemProvider;
+import com.upplication.s3fs.S3Path;
+import com.upplication.s3fs.S3UnitTestBase;
+import com.upplication.s3fs.util.S3EndpointConstant;
 
 public class ToUriTest extends S3UnitTestBase {
 
@@ -34,6 +34,25 @@ public class ToUriTest extends S3UnitTestBase {
     @Test
     public void toUri() {
         Path path = getPath("/bucket/path/to/file");
+        URI uri = path.toUri();
+
+        // the scheme is s3
+        assertEquals("s3", uri.getScheme());
+
+        // could get the correct fileSystem
+        S3FileSystem fs =  s3fsProvider.getFileSystem(uri);
+        // the host is the endpoint specified in fileSystem
+        assertEquals(fs.getEndpoint(), uri.getHost());
+
+        // bucket name as first path
+        Path pathActual = fs.provider().getPath(uri);
+
+        assertEquals(path, pathActual);
+    }
+
+    @Test
+    public void toUriSpecialChars() {
+        Path path = getPath("/bucket/([fol! @#$%der])");
         URI uri = path.toUri();
 
         // the scheme is s3

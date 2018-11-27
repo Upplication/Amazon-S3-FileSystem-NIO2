@@ -1,9 +1,7 @@
 package com.upplication.s3fs;
 
-import com.google.common.base.*;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.upplication.s3fs.attribute.S3BasicFileAttributes;
+import static com.google.common.collect.Iterables.concat;
+import static java.lang.String.format;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,12 +9,20 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.nio.file.*;
+import java.net.URLEncoder;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.google.common.collect.Iterables.*;
-import static java.lang.String.format;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 
 public class S3Path implements Path {
 
@@ -583,10 +589,17 @@ public class S3Path implements Path {
      * @return String
      */
     private String encode(String uri) {
-        // remove special case URI starting with //
-        uri = uri.replace("//", "/");
-        uri = uri.replaceAll(" ", "%20");
-        return uri;
+        try {
+            // URL encode all characters, but then convert known allowed characters back
+            return URLEncoder.encode(uri, "UTF-8")
+            .replace("%3A", ":")
+            .replace("%2F", "/")
+            .replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            // This should never happen unless there is something
+            // fundamentally broken with the running JVM.
+            throw new RuntimeException(e);
+        }
     }
 
     /**
