@@ -3,6 +3,7 @@ package com.upplication.s3fs;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.net.UrlEscapers;
 import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 
 import java.io.File;
@@ -585,7 +586,7 @@ public class S3Path implements Path {
     private String encode(String uri) {
         // remove special case URI starting with //
         uri = uri.replace("//", "/");
-        uri = uri.replaceAll(" ", "%20");
+        uri = UrlEscapers.urlFragmentEscaper().escape(uri);
         return uri;
     }
 
