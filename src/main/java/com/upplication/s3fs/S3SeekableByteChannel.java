@@ -52,7 +52,8 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
                         .getObject(path.getFileStore().getBucket().getName(), key)) {
                     Files.copy(object.getObjectContent(), tempFile, StandardCopyOption.REPLACE_EXISTING);
                 }
-            }
+            } else
+                sync(); // make sure S3FileSystemProvider.readAttributes() sees the new file
 
             Set<? extends OpenOption> seekOptions = new HashSet<>(this.options);
             seekOptions.remove(StandardOpenOption.CREATE_NEW);
