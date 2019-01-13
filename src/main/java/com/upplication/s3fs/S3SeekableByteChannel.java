@@ -106,7 +106,8 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
      * @throws IOException if the tempFile fails to open a newInputStream
      */
     protected void sync() throws IOException {
-        try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
+        // Don't use a BufferedInputStream due to issue 36518, just use the raw file input stream
+        try (InputStream stream = Files.newInputStream(tempFile)) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(tempFile));
             if (path.getFileName() != null) {
