@@ -106,14 +106,17 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
      * @throws IOException if the tempFile fails to open a newInputStream
      */
     protected void sync() throws IOException {
-        // Don't use a BufferedInputStream due to issue 36518, just use the raw file input stream
-        try (InputStream stream = Files.newInputStream(tempFile)) {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(Files.size(tempFile));
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(Files.size(tempFile));
+
+        try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
             if (path.getFileName() != null) {
                 metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
             }
+        }
 
+        // Don't use a BufferedInputStream due to issue 36518, just use the raw file input stream
+        try (InputStream stream = Files.newInputStream(tempFile)) {
             String bucket = path.getFileStore().name();
             String key = path.getKey();
             // Stash the response from S3 to be used later
