@@ -98,4 +98,19 @@ public class S3SeekableByteChannelTest extends S3UnitTestBase {
         Files.delete(tempFile);
         channel.close();
     }
+
+    @Test
+    public void writeFileWithReallyLongName() throws IOException {
+        AmazonS3ClientMock client = AmazonS3MockFactory.getAmazonClientMock();
+        String longDirectoryName = "FuscetellusodiodapibusidfermentumquissuscipitideratEtiamquisquamVestibulumeratnullaullamcorpernecrutrumnonnon";
+        String longFileName = "ummyaceratSedutperspiciatisundeomnisisfasdfasdfasfsafdtenatuserrorsitvoluptatemaccusantiumdoloremquelaudantiumtotamremaperiameaqueipsaq";
+        client.bucket("buck").file(longDirectoryName + "/" + longFileName);
+
+        S3Path file1 = (S3Path) FileSystems.getFileSystem(S3EndpointConstant.S3_GLOBAL_URI_TEST).getPath("/buck/"+ longDirectoryName + "/" + longFileName);
+        S3SeekableByteChannel channel = spy(new S3SeekableByteChannel(file1, EnumSet.of(StandardOpenOption.WRITE)));
+        channel.write(ByteBuffer.wrap("hoi".getBytes()));
+        channel.close();
+
+        verify(channel, times(1)).sync();
+    }
 }
