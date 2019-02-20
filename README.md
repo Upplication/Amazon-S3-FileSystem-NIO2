@@ -6,7 +6,7 @@ This project provides a first API implementation, little optimized, but "complet
 
 [![Build Status](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2.svg?branch=master)](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2/builds) [![Coverage Status](https://coveralls.io/repos/Upplication/Amazon-S3-FileSystem-NIO2/badge.png?branch=master)](https://coveralls.io/r/Upplication/Amazon-S3-FileSystem-NIO2?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs)
 
-#### How to use
+#### How to use
 
 ##### Download from Maven Central
 
@@ -26,7 +26,7 @@ And add to your META-INF/services/java.nio.file.spi.FileSystemProvider (create i
 All settings for S3FileSystem and for the underlying AmazonS3 connector library can be set through System properties or environment variables.
 Possible settings can be found in com.upplication.s3fs.AmazonS3Factory.
 
-#### Using service locator and system vars
+#### Using service locator and system vars
 
 Check that s3fs_access_key and s3fs_secret_key system vars are present with the correct values to have full access to your amazon s3 bucket.
 
@@ -151,7 +151,7 @@ private FileSystem s3FileSystem;
 * Added new method toURL to S3Path and can be customized with the property s3fs_path_style_access #83
 * Improved S3Path Tests
 
-#### Features:
+#### Features:
 
 * Copy and create folders and files
 * Delete folders and files
@@ -166,7 +166,7 @@ private FileSystem s3FileSystem;
 * Performance issue (slow querys with virtual folders, add multipart submit...)
 * Disallow upload binary files with same name as folders and vice versa
 
-#### Out of Roadmap:
+#### Out of Roadmap:
 
 * Watchers
 
@@ -191,6 +191,6 @@ s3fs_access_key=your access key for test
 
 Thats all, now you can run the test with the command: `mvn test` or `mvn integration-test -Pintegration-tests`
 
-#### LICENSE:
+#### LICENSE:
 
 Amazon S3 FileSystem NIO2 is released under the MIT License.
