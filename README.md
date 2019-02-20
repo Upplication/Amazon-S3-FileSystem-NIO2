@@ -6,9 +6,9 @@ This project provides a first API implementation, little optimized, but "complet
 
 [![Build Status](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2.svg?branch=master)](https://travis-ci.org/Upplication/Amazon-S3-FileSystem-NIO2/builds) [![Coverage Status](https://coveralls.io/repos/Upplication/Amazon-S3-FileSystem-NIO2/badge.png?branch=master)](https://coveralls.io/r/Upplication/Amazon-S3-FileSystem-NIO2?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.upplication/s3fs)
 
-#### How to use
+# How to use
 
-##### Download from Maven Central
+## Download from Maven Central
 
 ```XML
 <dependency>
@@ -21,12 +21,12 @@ This project provides a first API implementation, little optimized, but "complet
 
 And add to your META-INF/services/java.nio.file.spi.FileSystemProvider (create if not exists yet) a new line like this: com.upplication.s3fs.S3FileSystemProvider.
 
-##### S3FileSystem and AmazonS3 settings
+## S3FileSystem and AmazonS3 settings
 
 All settings for S3FileSystem and for the underlying AmazonS3 connector library can be set through System properties or environment variables.
 Possible settings can be found in com.upplication.s3fs.AmazonS3Factory.
 
-#### Using service locator and system vars
+# Using service locator and system vars
 
 Check that s3fs_access_key and s3fs_secret_key system vars are present with the correct values to have full access to your amazon s3 bucket.
 
@@ -36,7 +36,7 @@ Use this code to create the fileSystem and set to a concrete endpoint.
 FileSystems.newFileSystem("s3:///", new HashMap<String,Object>(), Thread.currentThread().getContextClassLoader());
 ```
 
-##### Using service locator and amazon.properties in the classpath
+## Using service locator and amazon.properties in the classpath
 
 Add to your resources folder the file amazon.properties with the content:
 s3fs_access_key=access-key
@@ -48,7 +48,7 @@ Use this code to create the fileSystem and set to a concrete endpoint.
 FileSystems.newFileSystem("s3:///", new HashMap<String,Object>(), Thread.currentThread().getContextClassLoader());
 ```
 
-##### Using service locator and programatically authentication
+## Using service locator and programatically authentication
 
 Create a map with the authentication and use the fileSystem to create the fileSystem and set to a concrete endpoint.
 
@@ -82,7 +82,7 @@ Complete settings lists:
 * s3fs_signer_override
 * s3fs_path_style_access
 
-##### Set endpoint to reduce data latency in your applications
+## Set endpoint to reduce data latency in your applications
 
 ```java
 // Northern Virginia or Pacific Northwest
@@ -99,7 +99,7 @@ FileSystems.newFileSystem("s3://s3-eu-west-1.amazonaws.com/", env, Thread.curren
 
 For a complete list of available regions look at: http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
 
-##### How to use in Apache MINA
+## How to use in Apache MINA
 
 ```java
 public FileSystemFactory createFileSystemFactory(String bucketName) throws IOException, URISyntaxException {
@@ -110,7 +110,7 @@ public FileSystemFactory createFileSystemFactory(String bucketName) throws IOExc
 }
 ```
 
-##### How to use in Spring
+## How to use in Spring
 
 Add to classpath and configure:
 
@@ -142,7 +142,7 @@ Now you can inject in any spring component:
 private FileSystem s3FileSystem;
 ```
 
-##### What is new 2.0.0
+## What is new 2.0.0
 
 * Preserve URI with end slash #76
 * Removed META-INF/services/java.nio.file.spi.FileTypeDetector #78
@@ -151,7 +151,7 @@ private FileSystem s3FileSystem;
 * Added new method toURL to S3Path and can be customized with the property s3fs_path_style_access #83
 * Improved S3Path Tests
 
-#### Features:
+# Features
 
 * Copy and create folders and files
 * Delete folders and files
@@ -161,16 +161,16 @@ private FileSystem s3FileSystem;
 * List buckets for the client
 * Multi endpoint fileSystem
 
-#### Roadmap:
+# Roadmap
 
 * Performance issue (slow querys with virtual folders, add multipart submit...)
 * Disallow upload binary files with same name as folders and vice versa
 
-#### Out of Roadmap:
+# Out of Roadmap
 
 * Watchers
 
-#### How to contribute
+# How to contribute
 
 Clone the github repository:
 
@@ -191,6 +191,6 @@ s3fs_access_key=your access key for test
 
 Thats all, now you can run the test with the command: `mvn test` or `mvn integration-test -Pintegration-tests`
 
-#### LICENSE:
+# LICENSE
 
 Amazon S3 FileSystem NIO2 is released under the MIT License.
