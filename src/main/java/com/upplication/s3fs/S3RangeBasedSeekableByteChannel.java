@@ -72,8 +72,15 @@ public class S3RangeBasedSeekableByteChannel implements SeekableByteChannel {
                 .getObject(new GetObjectRequest(path.getFileStore().name(), key).withRange(position, position + capacity))) {
             try (InputStream in = object.getObjectContent())
             {
-                int bytesRead = in.read(dst.array());
-                position += bytesRead;
+                // Issue 36929 - be sure to fully consume all of the available bytes, not just do a single read()
+                int index = 0;
+                int bytesRead;
+                byte[] array = dst.array();
+                while ((bytesRead = in.read(array, index, array.length - index)) > 0)
+                {
+                    position += bytesRead;
+                    index+= bytesRead;
+                }
                 return bytesRead;
             }
         }
