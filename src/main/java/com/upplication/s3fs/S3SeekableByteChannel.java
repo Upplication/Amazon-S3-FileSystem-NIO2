@@ -2,9 +2,7 @@ package com.upplication.s3fs;
 
 import static java.lang.String.format;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
@@ -127,6 +125,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
         AmazonS3 client = path.getFileSystem().getClient();
         // Uploads of > 5GB have to be done using a multipart upload instead of a single PUT, but we can get better
         // perf by allowing the parallelization of uploads for reasonably large files as well.
+        File file = tempFile.toFile();
         if (size > 16 * 1024 * 1024)
         {
             TransferManager tm = TransferManagerBuilder.standard()
@@ -137,7 +136,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
             try {
                 // TransferManager processes all transfers asynchronously,
                 // so this call returns immediately.
-                Upload upload = tm.upload(bucket, key, tempFile.toFile());
+                Upload upload = tm.upload(bucket, key, file);
 
                 // Wait for the upload to finish before continuing.
                 try {
@@ -153,20 +152,11 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
         }
         else
         {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(size);
+            // Pass the raw file instead of an input stream, due to issue 36518
+            // See https://github.com/aws/aws-sdk-java/issues/427
 
-            try (InputStream stream = new BufferedInputStream(Files.newInputStream(tempFile))) {
-                if (path.getFileName() != null) {
-                    metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
-                }
-            }
-
-            // Don't use a BufferedInputStream due to issue 36518, just use the raw file input stream
-            try (InputStream stream = Files.newInputStream(tempFile)) {
-                // Stash the response from S3 to be used later
-                putResult = client.putObject(bucket, key, stream, metadata);
-            }
+            // Stash the response from S3 to be used later
+            putResult = client.putObject(bucket, key, file);
         }
     }
 
