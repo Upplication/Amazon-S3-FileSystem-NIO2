@@ -3,6 +3,7 @@ package com.upplication.s3fs.util;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.google.common.collect.Sets;
+import com.upplication.s3fs.attribute.S3BasicFileAttributeView;
 import com.upplication.s3fs.attribute.S3BasicFileAttributes;
 import com.upplication.s3fs.S3Path;
 import com.upplication.s3fs.attribute.S3PosixFileAttributes;
@@ -11,6 +12,7 @@ import com.upplication.s3fs.attribute.S3UserPrincipal;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,7 +41,16 @@ public class S3Utils {
             result.setBucketName(bucketName);
             result.setETag(metadata.getETag());
             result.setKey(key);
+            String customLastModified = metadata.getUserMetaDataOf(S3BasicFileAttributeView.LABKEY_LAST_MODIFIED);
             result.setLastModified(metadata.getLastModified());
+            if (customLastModified != null)
+            {
+                try
+                {
+                    result.setLastModified(new Date(Long.parseLong(customLastModified)));
+                }
+                catch (NumberFormatException ignored) {}
+            }
             result.setSize(metadata.getContentLength());
             AccessControlList objectAcl = client.getObjectAcl(bucketName, key);
             result.setOwner(objectAcl.getOwner());
@@ -50,7 +61,7 @@ public class S3Utils {
         }
 
         // if not found (404 err) with the original key.
-        // try to find the elment as a directory.
+        // try to find the element as a directory.
         try {
             // is a virtual directory
             ListObjectsRequest request = new ListObjectsRequest();
