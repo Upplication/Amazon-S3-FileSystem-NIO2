@@ -4,7 +4,7 @@
 	<groupId>com.upplication</groupId>
 	<artifactId>s3fs</artifactId>
 	<packaging>jar</packaging>
-	<version>2.2.2.11</version>
+	<version>2.2.2.12</version>
 	<name>s3fs</name>
 	<description>S3 filesystem provider for Java 7</description>
 	<url>https://github.com/Upplication/Amazon-S3-FileSystem-NIO2</url>
