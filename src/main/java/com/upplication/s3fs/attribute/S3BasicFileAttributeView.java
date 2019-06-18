@@ -1,6 +1,9 @@
 package com.upplication.s3fs.attribute;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.upplication.s3fs.S3Path;
 
@@ -9,6 +12,7 @@ import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -44,16 +48,7 @@ public class S3BasicFileAttributeView implements BasicFileAttributeView {
         String bucketName = s3Path.getFileStore().getBucket().getName();
         String fileKey = s3Path.getKey();
         ObjectMetadata metadataCopy = client.getObjectMetadata(bucketName, fileKey).clone();
-        // Overwrite the current metadata with the arguments
-        if (lastModifiedTime != null) {
-            metadataCopy.addUserMetadata(LABKEY_LAST_MODIFIED, Long.toString(lastModifiedTime.toMillis()));
-        }
-        if (lastAccessTime != null) {
-            metadataCopy.addUserMetadata(LABKEY_LAST_ACCESS, Long.toString(lastAccessTime.toMillis()));
-        }
-        if (createTime != null) {
-            metadataCopy.addUserMetadata(LABKEY_CREATE_TIME, Long.toString(createTime.toMillis()));
-        }
+        setMetadataTimes(metadataCopy, lastModifiedTime, lastAccessTime, createTime);
 
         // S3 doesn't let you modify attributes of existing objects. However, you can set them as part of a copy
         // operation, and the copy's source and target locations can be identical. This means we don't have to download
@@ -62,12 +57,13 @@ public class S3BasicFileAttributeView implements BasicFileAttributeView {
         long objectSize = metadataCopy.getContentLength();
         // S3 doesn't support single-copy requests when the object is >5GB, so use a multi-part approach when needed
         // Taken from https://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjctsUsingLLJavaMPUapi.html
-        if (objectSize > 5_000_000_000L) {
+
+        long partSize = 5L * 1024L * 1024L * 1024L - 1; // 5GB chunks
+        if (objectSize > partSize) {
 
             InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(bucketName, fileKey).withObjectMetadata(metadataCopy);
             InitiateMultipartUploadResult initResult = client.initiateMultipartUpload(initRequest);
 
-            long partSize = 5 * 1024 * 1024;
             long bytePosition = 0;
             int partNum = 1;
             List<CopyPartResult> copyResponses = new ArrayList<>();
@@ -106,6 +102,21 @@ public class S3BasicFileAttributeView implements BasicFileAttributeView {
 
             client.copyObject(request);
         }
+    }
+
+    public static ObjectMetadata setMetadataTimes(ObjectMetadata metadata, FileTime lastModified, FileTime lastAccess, FileTime createTime)
+    {
+        // Overwrite the current metadata with the arguments
+        if (lastModified != null) {
+            metadata.addUserMetadata(LABKEY_LAST_MODIFIED, Long.toString(lastModified.toMillis()));
+        }
+        if (lastAccess != null) {
+            metadata.addUserMetadata(LABKEY_LAST_ACCESS, Long.toString(lastAccess.toMillis()));
+        }
+        if (createTime != null) {
+            metadata.addUserMetadata(LABKEY_CREATE_TIME, Long.toString(createTime.toMillis()));
+        }
+        return metadata;
     }
 
     // This is a helper function to construct a list of ETags.

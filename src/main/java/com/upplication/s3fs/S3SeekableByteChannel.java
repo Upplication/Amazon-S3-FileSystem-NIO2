@@ -6,7 +6,9 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
+import java.nio.file.attribute.FileTime;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -14,12 +16,15 @@ import java.util.concurrent.Executors;
 
 import com.amazonaws.client.builder.ExecutorFactory;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
 import com.amazonaws.services.s3.model.S3Object;
+import com.upplication.s3fs.attribute.S3BasicFileAttributeView;
 
 public class S3SeekableByteChannel implements SeekableByteChannel {
 
@@ -28,6 +33,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
     private SeekableByteChannel seekable;
     private Path tempFile;
     private PutObjectResult putResult;
+    private Date lastModified;
 
     /**
      * Open or creates a file, returning a seekable byte channel
@@ -120,10 +126,16 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
         String bucket = path.getFileStore().name();
         String key = path.getKey();
 
+        File file = tempFile.toFile();
+        PutObjectRequest request = new PutObjectRequest(bucket, key, file).withMetadata(new ObjectMetadata());
+        if (lastModified != null)
+        {
+            request.withMetadata(S3BasicFileAttributeView.setMetadataTimes(new ObjectMetadata(), FileTime.fromMillis(lastModified.getTime()), null, FileTime.fromMillis(lastModified.getTime())));
+        }
+
         AmazonS3 client = path.getFileSystem().getClient();
         // Uploads of > 5GB have to be done using a multipart upload instead of a single PUT, but we can get better
         // perf by allowing the parallelization of uploads for reasonably large files as well.
-        File file = tempFile.toFile();
         if (size > 16 * 1024 * 1024)
         {
             TransferManager tm = TransferManagerBuilder.standard()
@@ -134,7 +146,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
             try {
                 // TransferManager processes all transfers asynchronously,
                 // so this call returns immediately.
-                Upload upload = tm.upload(bucket, key, file);
+                Upload upload = tm.upload(request);
 
                 // Wait for the upload to finish before continuing.
                 try {
@@ -154,7 +166,7 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
             // See https://github.com/aws/aws-sdk-java/issues/427
 
             // Stash the response from S3 to be used later
-            putResult = client.putObject(bucket, key, file);
+            putResult = client.putObject(request);
         }
     }
 
@@ -190,5 +202,9 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
 
     public PutObjectResult getPutResult() {
         return putResult;
+    }
+
+    public void setLastModified(Date lastModified) {
+        this.lastModified = lastModified;
     }
 }

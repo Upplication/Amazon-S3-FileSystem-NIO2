@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Date;
 
 /** Special subclass that gives access to the result object from the PUT call to S3 */
 public class S3FSOutputStream extends FilterOutputStream {
@@ -18,6 +19,10 @@ public class S3FSOutputStream extends FilterOutputStream {
 
     public PutObjectResult getPutResult() {
         return channel.getPutResult();
+    }
+
+    public void setLastModified(Date lastModified) {
+        this.channel.setLastModified(lastModified);
     }
 
     @Override

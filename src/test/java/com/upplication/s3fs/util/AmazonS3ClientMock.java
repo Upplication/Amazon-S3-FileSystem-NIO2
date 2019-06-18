@@ -967,7 +967,12 @@ public class AmazonS3ClientMock extends AbstractAmazonS3 {
 
     @Override
     public PutObjectResult putObject(PutObjectRequest putObjectRequest) throws AmazonClientException {
-        throw new UnsupportedOperationException();
+        if (putObjectRequest.getBucketName() != null && putObjectRequest.getKey() != null && putObjectRequest.getFile() != null) {
+            return putObject(putObjectRequest.getBucketName(), putObjectRequest.getKey(), putObjectRequest.getFile());
+        }
+        else {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Override
