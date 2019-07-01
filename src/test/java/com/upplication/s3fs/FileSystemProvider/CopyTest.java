@@ -16,6 +16,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.*;
 
 public class CopyTest extends S3UnitTestBase {
@@ -89,6 +90,31 @@ public class CopyTest extends S3UnitTestBase {
         Path file = fs.getPath("/bucketA", "dir", "file1");
         Path fileDest = fs.getPath("/bucketA", "dir", "file2");
         s3fsProvider.copy(file, fileDest);
+    }
+
+    @Test
+    public void copyDirectory() throws IOException {
+        final String content = "sample-content";
+        // fixtures
+        AmazonS3ClientMock client = AmazonS3MockFactory.getAmazonClientMock();
+        client.bucket("bucketA").dir("dir1").file("dir1/file", content.getBytes());
+        FileSystem fs = createNewS3FileSystem();
+        Path dir1 = fs.getPath("/bucketA", "dir1");
+        Path file1 = fs.getPath("/bucketA", "dir1", "file");
+        Path dir2 = fs.getPath("/bucketA", "dir2");
+        Path file2 = fs.getPath("/bucketA", "dir2", "file");
+        // assert
+        assertTrue(Files.exists(dir1));
+        assertTrue(Files.exists(file1));
+        assertTrue(Files.isDirectory(dir1));
+        assertTrue(Files.isRegularFile(file1));
+        assertFalse(Files.exists(dir2));
+        assertFalse(Files.exists(file2));
+        // act
+        s3fsProvider.copy(dir1, dir2);
+        assertTrue(Files.exists(dir2));
+        assertTrue(Files.isDirectory(dir2));
+        assertFalse(Files.exists(file2));
     }
 
     /**

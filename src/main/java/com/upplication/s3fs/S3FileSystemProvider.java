@@ -398,28 +398,31 @@ public class S3FileSystemProvider extends FileSystemProvider {
 
         S3Path s3Source = toS3Path(source);
         S3Path s3Target = toS3Path(target);
-        // TODO: implements support for copying directories
-
-        Preconditions.checkArgument(!Files.isDirectory(source), "copying directories is not yet supported: %s", source);
-        Preconditions.checkArgument(!Files.isDirectory(target), "copying directories is not yet supported: %s", target);
 
         ImmutableSet<CopyOption> actualOptions = ImmutableSet.copyOf(options);
         verifySupportedOptions(EnumSet.of(StandardCopyOption.REPLACE_EXISTING), actualOptions);
 
-        if (exists(s3Target) && !actualOptions.contains(StandardCopyOption.REPLACE_EXISTING)) {
-            throw new FileAlreadyExistsException(format("target already exists: %s", target));
+        if (exists(s3Target)) {
+            if (!actualOptions.contains(StandardCopyOption.REPLACE_EXISTING)) {
+                throw new FileAlreadyExistsException(format("target already exists: %s", target));
+            }
+            delete(s3Target);
         }
 
-        String bucketNameOrigin = s3Source.getFileStore().name();
-        String keySource = s3Source.getKey();
-        String bucketNameTarget = s3Target.getFileStore().name();
-        String keyTarget = s3Target.getKey();
-        s3Source.getFileSystem()
-                .getClient().copyObject(
-                bucketNameOrigin,
-                keySource,
-                bucketNameTarget,
-                keyTarget);
+        if (Files.isDirectory(source)) {
+            createDirectory(s3Target);
+        } else {
+            String bucketNameOrigin = s3Source.getFileStore().name();
+            String keySource = s3Source.getKey();
+            String bucketNameTarget = s3Target.getFileStore().name();
+            String keyTarget = s3Target.getKey();
+            s3Source.getFileSystem()
+                    .getClient().copyObject(
+                    bucketNameOrigin,
+                    keySource,
+                    bucketNameTarget,
+                    keyTarget);
+        }
     }
 
     @Override
