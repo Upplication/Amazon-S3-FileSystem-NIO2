@@ -1,11 +1,78 @@
 package com.upplication.s3fs;
 
+import static com.google.common.collect.Sets.difference;
+import static com.upplication.s3fs.AmazonS3Factory.ACCESS_KEY;
+import static com.upplication.s3fs.AmazonS3Factory.CONNECTION_TIMEOUT;
+import static com.upplication.s3fs.AmazonS3Factory.MAX_CONNECTIONS;
+import static com.upplication.s3fs.AmazonS3Factory.MAX_ERROR_RETRY;
+import static com.upplication.s3fs.AmazonS3Factory.PATH_STYLE_ACCESS;
+import static com.upplication.s3fs.AmazonS3Factory.PROTOCOL;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_DOMAIN;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_HOST;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_PASSWORD;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_PORT;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_USERNAME;
+import static com.upplication.s3fs.AmazonS3Factory.PROXY_WORKSTATION;
+import static com.upplication.s3fs.AmazonS3Factory.REQUEST_METRIC_COLLECTOR_CLASS;
+import static com.upplication.s3fs.AmazonS3Factory.SECRET_KEY;
+import static com.upplication.s3fs.AmazonS3Factory.SIGNER_OVERRIDE;
+import static com.upplication.s3fs.AmazonS3Factory.SOCKET_RECEIVE_BUFFER_SIZE_HINT;
+import static com.upplication.s3fs.AmazonS3Factory.SOCKET_SEND_BUFFER_SIZE_HINT;
+import static com.upplication.s3fs.AmazonS3Factory.SOCKET_TIMEOUT;
+import static com.upplication.s3fs.AmazonS3Factory.USER_AGENT;
+import static com.upplication.s3fs.AmazonS3Factory.ENCRYPT_SSE_S3;
+
+import static java.lang.String.format;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.AccessMode;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.CopyOption;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.spi.FileSystemProvider;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.Headers;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -17,23 +84,6 @@ import com.upplication.s3fs.attribute.S3PosixFileAttributes;
 import com.upplication.s3fs.util.AttributesUtils;
 import com.upplication.s3fs.util.Cache;
 import com.upplication.s3fs.util.S3Utils;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.channels.FileChannel;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
-import java.nio.file.attribute.*;
-import java.nio.file.spi.FileSystemProvider;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import static com.google.common.collect.Sets.difference;
-import static com.upplication.s3fs.AmazonS3Factory.*;
-import static java.lang.String.format;
 
 /**
  * Spec:
@@ -71,12 +121,13 @@ public class S3FileSystemProvider extends FileSystemProvider {
     private static final ConcurrentMap<String, S3FileSystem> fileSystems = new ConcurrentHashMap<>();
     private static final List<String> PROPS_TO_OVERLOAD = Arrays.asList(ACCESS_KEY, SECRET_KEY, REQUEST_METRIC_COLLECTOR_CLASS, CONNECTION_TIMEOUT, MAX_CONNECTIONS, MAX_ERROR_RETRY, PROTOCOL, PROXY_DOMAIN,
             PROXY_HOST, PROXY_PASSWORD, PROXY_PORT, PROXY_USERNAME, PROXY_WORKSTATION, SOCKET_SEND_BUFFER_SIZE_HINT, SOCKET_RECEIVE_BUFFER_SIZE_HINT, SOCKET_TIMEOUT,
-            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS);
+            USER_AGENT, AMAZON_S3_FACTORY_CLASS, SIGNER_OVERRIDE, PATH_STYLE_ACCESS, ENCRYPT_SSE_S3);
 
     private S3Utils s3Utils = new S3Utils();
     private Cache cache = new Cache();
-
-    @Override
+    private boolean serverSideEncryption = false;    
+    
+	@Override
     public String getScheme() {
         return "s3";
     }
@@ -414,12 +465,18 @@ public class S3FileSystemProvider extends FileSystemProvider {
         String keySource = s3Source.getKey();
         String bucketNameTarget = s3Target.getFileStore().name();
         String keyTarget = s3Target.getKey();
-        s3Source.getFileSystem()
-                .getClient().copyObject(
-                bucketNameOrigin,
-                keySource,
-                bucketNameTarget,
-                keyTarget);
+        
+        CopyObjectRequest copyObjectRequest = new CopyObjectRequest(bucketNameOrigin, keySource,
+        		bucketNameTarget, keyTarget);
+
+        if (s3Target.getFileSystem().isServerSideEncryption()) {
+	        // force server side encrypt
+	        ObjectMetadata metadata = new ObjectMetadata();
+	        metadata.setHeader(Headers.SERVER_SIDE_ENCRYPTION, SSEAlgorithm.getDefault().name());
+	        copyObjectRequest.setNewObjectMetadata(metadata);
+        }
+        
+        s3Source.getFileSystem().getClient().copyObject(copyObjectRequest);
     }
 
     @Override
@@ -550,7 +607,9 @@ public class S3FileSystemProvider extends FileSystemProvider {
      * @return S3FileSystem never null
      */
     public S3FileSystem createFileSystem(URI uri, Properties props) {
-        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost());
+    	String encryptPropertyValue = props.getProperty(ENCRYPT_SSE_S3);
+    	boolean encrypt = encryptPropertyValue != null && Boolean.valueOf(encryptPropertyValue);
+        return new S3FileSystem(this, getFileSystemKey(uri, props), getAmazonS3(uri, props), uri.getHost(), encrypt);
     }
 
     protected AmazonS3 getAmazonS3(URI uri, Properties props) {
@@ -634,4 +693,12 @@ public class S3FileSystemProvider extends FileSystemProvider {
     public void setCache(Cache cache) {
         this.cache = cache;
     }
+    
+    public boolean isServerSideEncryption() {
+		return serverSideEncryption;
+	}
+
+	public void setServerSideEncryption(boolean serverSideEncryption) {
+		this.serverSideEncryption = serverSideEncryption;
+	}
 }

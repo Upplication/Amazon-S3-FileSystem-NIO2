@@ -1,5 +1,8 @@
 package com.upplication.s3fs;
 
+import java.net.URI;
+import java.util.Properties;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -9,9 +12,6 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.metrics.RequestMetricCollector;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
-
-import java.net.URI;
-import java.util.Properties;
 
 
 /**
@@ -38,6 +38,7 @@ public abstract class AmazonS3Factory {
     public static final String USER_AGENT = "s3fs_user_agent";
     public static final String SIGNER_OVERRIDE = "s3fs_signer_override";
     public static final String PATH_STYLE_ACCESS = "s3fs_path_style_access";
+    public static final String ENCRYPT_SSE_S3 = "s3fs_encrypt_sse_s3";
 
     /**
      * Build a new Amazon S3 instance with the URI and the properties provided

@@ -28,8 +28,9 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
     private final AmazonS3 client;
     private final String endpoint;
     private int cache;
+    private boolean serverSideEncryption;
 
-    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
+	public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint) {
         this.provider = provider;
         this.key = key;
         this.client = client;
@@ -37,6 +38,12 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
         this.cache = 60000; // 1 minute cache for the s3Path
     }
 
+    public S3FileSystem(S3FileSystemProvider provider, String key, AmazonS3 client, String endpoint, 
+    		boolean serverSideEncryption) {
+    	this(provider, key, client, endpoint);
+        this.serverSideEncryption = serverSideEncryption;
+    }
+    
     @Override
     public S3FileSystemProvider provider() {
         return provider;
@@ -176,4 +183,8 @@ public class S3FileSystem extends FileSystem implements Comparable<S3FileSystem>
     public int getCache() {
         return cache;
     }
+    
+    public boolean isServerSideEncryption() {
+		return serverSideEncryption;
+	}
 }

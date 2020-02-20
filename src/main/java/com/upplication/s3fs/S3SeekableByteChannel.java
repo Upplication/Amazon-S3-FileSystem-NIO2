@@ -7,15 +7,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.tika.Tika;
 
+import com.amazonaws.services.s3.Headers;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.SSEAlgorithm;
 
 public class S3SeekableByteChannel implements SeekableByteChannel {
 
@@ -107,6 +115,10 @@ public class S3SeekableByteChannel implements SeekableByteChannel {
                 metadata.setContentType(new Tika().detect(stream, path.getFileName().toString()));
             }
 
+            if (path.getFileSystem().isServerSideEncryption()) { 
+	            metadata.setHeader(Headers.SERVER_SIDE_ENCRYPTION, SSEAlgorithm.getDefault().name());
+            }
+            
             String bucket = path.getFileStore().name();
             String key = path.getKey();
             path.getFileSystem().getClient().putObject(bucket, key, stream, metadata);
