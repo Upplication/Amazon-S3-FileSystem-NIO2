@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class S3Utils {
 
     /**
-     * Get the {@link S3ObjectSummary} that represent this Path or her first child if this path not exists
+     * Get the {@link S3ObjectSummary} that represent this Path or her first child
+     * if this path not exists
      *
      * @param s3Path {@link S3Path}
      * @return {@link S3ObjectSummary}
@@ -32,7 +33,8 @@ public class S3Utils {
         String key = s3Path.getKey();
         String bucketName = s3Path.getFileStore().name();
         AmazonS3 client = s3Path.getFileSystem().getClient();
-        // try to find the element with the current key (maybe with end slash or maybe not.)
+        // try to find the element with the current key (maybe with end slash or maybe
+        // not.)
         try {
             ObjectMetadata metadata = client.getObjectMetadata(bucketName, key);
             S3ObjectSummary result = new S3ObjectSummary();
@@ -83,6 +85,7 @@ public class S3Utils {
 
     /**
      * get the S3PosixFileAttributes for a S3Path
+     * 
      * @param s3Path Path mandatory not null
      * @return S3PosixFileAttributes never null
      * @throws NoSuchFileException if the Path doesnt exists
@@ -94,25 +97,27 @@ public class S3Utils {
         String bucketName = s3Path.getFileStore().name();
 
         S3BasicFileAttributes attrs = toS3FileAttributes(objectSummary, key);
-        S3UserPrincipal userPrincipal = null;
-        Set<PosixFilePermission> permissions = null;
 
+        AccessControlList acl;
+        AmazonS3 client = s3Path.getFileSystem().getClient();
         if (!attrs.isDirectory()) {
-            AmazonS3 client = s3Path.getFileSystem().getClient();
-            AccessControlList acl = client.getObjectAcl(bucketName, key);
-            Owner owner = acl.getOwner();
+            acl = client.getObjectAcl(bucketName, key);
+        } else {
+            acl = client.getBucketAcl(bucketName);
 
-            userPrincipal = new S3UserPrincipal(owner.getId() + ":" + owner.getDisplayName());
-            permissions = toPosixFilePermissions(acl.getGrantsAsList());
         }
+        Owner owner = acl.getOwner();
+        S3UserPrincipal userPrincipal = new S3UserPrincipal(owner.getId() + ":" + owner.getDisplayName());
+        Set<PosixFilePermission> permissions = toPosixFilePermissions(acl.getGrantsAsList());
 
-        return new S3PosixFileAttributes((String)attrs.fileKey(), attrs.lastModifiedTime(),
-                attrs.size(), attrs.isDirectory(), attrs.isRegularFile(), userPrincipal, null, permissions);
+        return new S3PosixFileAttributes((String) attrs.fileKey(), attrs.lastModifiedTime(), attrs.size(),
+                attrs.isDirectory(), attrs.isRegularFile(), userPrincipal, null, permissions);
     }
 
-
     /**
-     * transform com.amazonaws.services.s3.model.Grant to java.nio.file.attribute.PosixFilePermission
+     * transform com.amazonaws.services.s3.model.Grant to
+     * java.nio.file.attribute.PosixFilePermission
+     * 
      * @see #toPosixFilePermission(Permission)
      * @param grants Set grants mandatory, must be not null
      * @return Set PosixFilePermission never null
@@ -127,27 +132,29 @@ public class S3Utils {
     }
 
     /**
-     * transform a com.amazonaws.services.s3.model.Permission to a java.nio.file.attribute.PosixFilePermission
-     * We use the follow rules:
-     * - transform only to the Owner permission, S3 doesnt have concepts like owner, group or other so we map only to owner.
-     * - ACP is a special permission: WriteAcp are mapped to Owner execute permission and ReadAcp are mapped to owner read
+     * transform a com.amazonaws.services.s3.model.Permission to a
+     * java.nio.file.attribute.PosixFilePermission We use the follow rules: -
+     * transform only to the Owner permission, S3 doesnt have concepts like owner,
+     * group or other so we map only to owner. - ACP is a special permission:
+     * WriteAcp are mapped to Owner execute permission and ReadAcp are mapped to
+     * owner read
+     * 
      * @param permission Permission to map, mandatory must be not null
      * @return Set PosixFilePermission never null
      */
-    public Set<PosixFilePermission> toPosixFilePermission(Permission permission){
+    public Set<PosixFilePermission> toPosixFilePermission(Permission permission) {
         switch (permission) {
-            case FullControl:
-                return Sets.newHashSet(PosixFilePermission.OWNER_EXECUTE,
-                        PosixFilePermission.OWNER_READ,
-                        PosixFilePermission.OWNER_WRITE);
-            case Write:
-                return Sets.newHashSet(PosixFilePermission.OWNER_WRITE);
-            case Read:
-                return Sets.newHashSet(PosixFilePermission.OWNER_READ);
-            case ReadAcp:
-                return Sets.newHashSet(PosixFilePermission.OWNER_READ);
-            case WriteAcp:
-                return Sets.newHashSet(PosixFilePermission.OWNER_EXECUTE);
+        case FullControl:
+            return Sets.newHashSet(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE);
+        case Write:
+            return Sets.newHashSet(PosixFilePermission.OWNER_WRITE);
+        case Read:
+            return Sets.newHashSet(PosixFilePermission.OWNER_READ);
+        case ReadAcp:
+            return Sets.newHashSet(PosixFilePermission.OWNER_READ);
+        case WriteAcp:
+            return Sets.newHashSet(PosixFilePermission.OWNER_EXECUTE);
         }
         throw new IllegalStateException("Unknown Permission: " + permission);
     }
@@ -155,10 +162,12 @@ public class S3Utils {
     /**
      * transform S3ObjectSummary to S3FileAttributes
      *
-     * @param objectSummary S3ObjectSummary mandatory not null, the real objectSummary with
-     *                      exactly the same key than the key param or the immediate descendant
-     *                      if it is a virtual directory
-     * @param key           String the real key that can be exactly equal than the objectSummary or
+     * @param objectSummary S3ObjectSummary mandatory not null, the real
+     *                      objectSummary with exactly the same key than the key
+     *                      param or the immediate descendant if it is a virtual
+     *                      directory
+     * @param key           String the real key that can be exactly equal than the
+     *                      objectSummary or
      * @return S3FileAttributes
      */
     public S3BasicFileAttributes toS3FileAttributes(S3ObjectSummary objectSummary, String key) {
@@ -172,13 +181,13 @@ public class S3Utils {
         boolean regularFile = false;
         String resolvedKey = objectSummary.getKey();
         // check if is a directory and exists the key of this directory at amazon s3
-        if (key.endsWith("/") && resolvedKey.equals(key) ||
-                resolvedKey.equals(key + "/")) {
+        if (key.endsWith("/") && resolvedKey.equals(key) || resolvedKey.equals(key + "/")) {
             directory = true;
         } else if (key.isEmpty()) { // is a bucket (no key)
             directory = true;
             resolvedKey = "/";
-        } else if (!resolvedKey.equals(key) && resolvedKey.startsWith(key)) { // is a directory but not exists at amazon s3
+        } else if (!resolvedKey.equals(key) && resolvedKey.startsWith(key)) { // is a directory but not exists at amazon
+                                                                              // s3
             directory = true;
             // no metadata, we fake one
             size = 0;
